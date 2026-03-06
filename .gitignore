@@ -1,0 +1,29 @@
+# Local Netlify folder
+.netlify
+
+# Next.js
+.next/
+out/
+node_modules/
+
+# Original static files (migrated to Next.js)
+index.html
+script.js
+style.css
+/배너.png
+/보람고.jpeg
+/CLASS HELP.png
+/컴시간 알리미.png
+/창체일정.jpeg
+/규정모음.jpeg
+/수학여행.jpeg
+/학사일정.jpeg
+/공동체 관리대장.png
+/노션기록.jpeg
+
+# IDE / tool config
+.cursor/
+.codex/
+.claude/
+openspec/
+img/
