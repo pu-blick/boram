@@ -9,7 +9,7 @@
     "orientation": "portrait",
     "icons": [
         {
-            "src": "/보람고.jpeg",
+            "src": "/icon.jpeg",
             "sizes": "512x512",
             "type": "image/jpeg",
             "purpose": "any maskable"
