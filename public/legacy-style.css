@@ -520,6 +520,11 @@ body {
 }
 
 /* Checkbox in postit */
+.postit-body div:has(> .memo-checkbox) {
+    padding-left: 24px;
+    text-indent: -24px;
+}
+
 .memo-checkbox {
     appearance: auto;
     width: 16px;
@@ -877,5 +882,22 @@ body {
 
     .alarm-name-input {
         font-size: 11px;
+    }
+
+    .postit-save-bar {
+        gap: 6px;
+        padding: 6px 10px;
+    }
+
+    .postit-title-input {
+        min-width: 0;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .memo-save-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        white-space: nowrap;
     }
 }
