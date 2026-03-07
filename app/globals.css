@@ -1,11 +1,16 @@
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0');
-
 *, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Smooth page appearance */
+body {
+    animation: fadeIn 0.2s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 :root {
@@ -396,5 +401,30 @@ body {
 @media (max-width: 600px) {
     .login-card {
         padding: 36px 24px;
+    }
+
+    .admin-header h1 {
+        font-size: 20px;
+    }
+
+    .user-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+
+    .user-info {
+        width: 100%;
+    }
+
+    .user-email {
+        font-size: 13px;
+        word-break: break-all;
+    }
+
+    .user-actions {
+        width: 100%;
+        justify-content: flex-end;
     }
 }
