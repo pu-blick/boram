@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../components/AuthProvider';
-import { auth } from '../lib/firebase';
+import { auth, getSchedules } from '../lib/firebase';
 
 export default function HomePage() {
     const { user, role, loading } = useAuth();
@@ -53,28 +53,35 @@ export default function HomePage() {
 
 function MainSite({ role }) {
     useEffect(() => {
-        // Load Firebase compat SDK then legacy script
-        const fbApp = document.createElement('script');
-        fbApp.src = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js';
-        document.body.appendChild(fbApp);
-
-        fbApp.onload = () => {
-            const fbDb = document.createElement('script');
-            fbDb.src = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js';
-            document.body.appendChild(fbDb);
-
-            fbDb.onload = () => {
-                const legacy = document.createElement('script');
-                legacy.src = '/legacy-script.js';
-                document.body.appendChild(legacy);
-            };
+        // Pass Firebase config to legacy script via window
+        window.__FIREBASE_CONFIG__ = {
+            apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+            databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
         };
+
+        // Load Firebase compat SDK then legacy script
+        const loadScript = (src) => new Promise((resolve) => {
+            const s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = () => { console.error('Script load failed:', src); resolve(); };
+            document.body.appendChild(s);
+        });
+
+        loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js')
+            .then(() => loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js'))
+            .then(() => loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js'))
+            .then(() => loadScript('/legacy-script.js'))
+            .catch(e => console.error('Script chain failed:', e));
     }, []);
 
     return (
         <>
-            <link rel="stylesheet" href="/legacy-style.css" />
-
             {/* Header */}
             <header className="header">
                 <button className="menu-btn" onClick={() => {
@@ -84,14 +91,14 @@ function MainSite({ role }) {
                     <span className="material-symbols-rounded">menu</span>
                 </button>
                 <div className="logo">
-                    <span className="logo-text">BORAM</span>
+                    <span className="logo-text">EduFlow</span>
                 </div>
             </header>
 
             {/* Sidebar */}
             <nav className="sidebar" id="sidebar">
                 <div className="sidebar-header">
-                    <span className="sidebar-logo">BORAM</span>
+                    <span className="sidebar-logo">EduFlow</span>
                     <button className="close-btn" onClick={() => {
                         document.getElementById('sidebar')?.classList.toggle('open');
                         document.getElementById('sidebarOverlay')?.classList.toggle('open');
@@ -121,7 +128,7 @@ function MainSite({ role }) {
             <section className="hero">
                 <div className="hero-overlay"></div>
                 <div className="hero-content">
-                    <h1>보람고 2학년부</h1>
+                    <h1>EduFlow</h1>
                 </div>
             </section>
 
@@ -156,13 +163,15 @@ function MainSite({ role }) {
                     <a href="http://xn--s39aqy283b66bj2x.kr/" target="_blank" className="circle-btn">
                         <img src="/컴시간 알리미.png" alt="컴시간 알리미" />
                     </a>
-                    <a href="https://smart-class-seating.netlify.app" target="_blank" className="circle-btn">
+                    <a href="/seating" className="circle-btn">
                         <img src="/CLASS HELP.png" alt="CLASS HELP" />
                     </a>
                     <a href="https://student-discipline-manager.netlify.app" target="_blank" className="circle-btn">
                         <img src="/공동체 관리대장.png" alt="공동체 관리대장" />
                     </a>
                 </section>
+
+                <CalendarSection />
 
                 <section className="memo-section">
                     <div className="memo-header">
@@ -214,8 +223,72 @@ function MainSite({ role }) {
             </main>
 
             <footer className="footer">
-                <p>보람고등학교 2학년부</p>
+                <p>EduFlow</p>
             </footer>
         </>
+    );
+}
+
+function CalendarSection() {
+    const today = new Date();
+    const [year, setYear] = useState(today.getFullYear());
+    const [month, setMonth] = useState(today.getMonth() + 1);
+    const [schedules, setSchedules] = useState({});
+
+    useEffect(() => {
+        getSchedules(year, month).then(setSchedules);
+    }, [year, month]);
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+    const prevMonth = () => {
+        if (month === 1) { setMonth(12); setYear(year - 1); }
+        else setMonth(month - 1);
+    };
+    const nextMonth = () => {
+        if (month === 12) { setMonth(1); setYear(year + 1); }
+        else setMonth(month + 1);
+    };
+
+    const isToday = (d) => d === today.getDate() && month === today.getMonth() + 1 && year === today.getFullYear();
+
+    return (
+        <section className="calendar-section">
+            <div className="calendar-header">
+                <button className="cal-nav" onClick={prevMonth}>
+                    <span className="material-symbols-rounded">chevron_left</span>
+                </button>
+                <h2 className="cal-title">{year}년 {month}월</h2>
+                <button className="cal-nav" onClick={nextMonth}>
+                    <span className="material-symbols-rounded">chevron_right</span>
+                </button>
+            </div>
+
+            <div className="calendar-grid">
+                {dayNames.map((d, i) => (
+                    <div key={d} className={`cal-dayname ${i === 0 ? 'sun' : ''} ${i === 6 ? 'sat' : ''}`}>{d}</div>
+                ))}
+                {Array.from({ length: firstDayOfWeek }, (_, i) => (
+                    <div key={`empty-${i}`} className="cal-cell empty"></div>
+                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => {
+                    const d = i + 1;
+                    const dayOfWeek = (firstDayOfWeek + i) % 7;
+                    const hasSchedule = !!schedules[d];
+                    return (
+                        <div
+                            key={d}
+                            className={`cal-cell ${isToday(d) ? 'today' : ''} ${hasSchedule ? 'has-event' : ''} ${dayOfWeek === 0 ? 'sun' : ''} ${dayOfWeek === 6 ? 'sat' : ''}`}
+                        >
+                            <span className="cal-date">{d}</span>
+                            {hasSchedule && <span className="cal-schedule-text">{schedules[d]}</span>}
+                        </div>
+                    );
+                })}
+            </div>
+
+        </section>
     );
 }
