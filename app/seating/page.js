@@ -317,17 +317,23 @@ function SeatingApp({ uid }) {
                             </div>
                             <div className="space-y-2">
                                 <label className="hidden sm:block text-[12px] font-black text-slate-300 uppercase tracking-widest">View Option</label>
-                                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-                                    <button onClick={() => setIsTeacherView(!isTeacherView)} className="flex items-center justify-center sm:justify-between px-3 sm:px-4 py-2 sm:py-3 bg-white border border-slate-200 rounded-lg sm:rounded-xl text-[12px] sm:text-[14px] font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm group">
-                                        <div className="flex items-center"><Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 text-slate-300 group-hover:text-indigo-600" />{isTeacherView ? "교사 시점" : "학생 시점"}</div>
-                                        <span className="hidden sm:inline text-[10px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-400 font-black tracking-tighter">{isTeacherView ? "REAR" : "FRONT"}</span>
+                                {/* Mobile: segmented control */}
+                                <div className="grid grid-cols-2 bg-slate-50 p-1 rounded-lg border border-slate-200 lg:hidden">
+                                    <button onClick={() => setIsTeacherView(false)} className={`flex items-center justify-center py-2 rounded-lg text-[12px] font-bold transition-all ${!isTeacherView ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100' : 'text-slate-400'}`}>학생 시점</button>
+                                    <button onClick={() => setIsTeacherView(true)} className={`flex items-center justify-center py-2 rounded-lg text-[12px] font-bold transition-all ${isTeacherView ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100' : 'text-slate-400'}`}>교사 시점</button>
+                                </div>
+                                {/* PC: toggle button + reveal/shuffle */}
+                                <div className="hidden lg:grid grid-cols-1 gap-2">
+                                    <button onClick={() => setIsTeacherView(!isTeacherView)} className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-xl text-[14px] font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm group">
+                                        <div className="flex items-center"><Users className="w-5 h-5 mr-3 text-slate-300 group-hover:text-indigo-600" />{isTeacherView ? "교사 시점" : "학생 시점"}</div>
+                                        <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded-full text-slate-400 font-black tracking-tighter">{isTeacherView ? "REAR" : "FRONT"}</span>
                                     </button>
-                                    <div className="hidden lg:grid grid-cols-2 gap-2">
-                                        <button onClick={handleRevealAll} className="flex items-center justify-center px-3 py-2 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl text-[12px] sm:text-[14px] font-bold text-slate-700 hover:bg-slate-100 transition-all shadow-sm group">
-                                            {isAllRevealed ? <><EyeOff className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 text-slate-400" /> <span className="whitespace-nowrap">가리기</span></> : <><Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 text-indigo-600" /> <span className="whitespace-nowrap">결과 공개</span></>}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={handleRevealAll} className="flex items-center justify-center px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-[14px] font-bold text-slate-700 hover:bg-slate-100 transition-all shadow-sm group">
+                                            {isAllRevealed ? <><EyeOff className="w-5 h-5 mr-1.5 text-slate-400" /> <span className="whitespace-nowrap">가리기</span></> : <><Sparkles className="w-5 h-5 mr-1.5 text-indigo-600" /> <span className="whitespace-nowrap">결과 공개</span></>}
                                         </button>
-                                        <button onClick={handleShuffle} disabled={isShuffling} className="flex items-center justify-center px-3 py-2 sm:py-3 bg-indigo-600 text-white rounded-lg sm:rounded-xl text-[12px] sm:text-[14px] font-bold hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50 active:scale-95">
-                                            {isShuffling ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 animate-spin" /> : <Wand2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />} <span className="whitespace-nowrap">배치 시작</span>
+                                        <button onClick={handleShuffle} disabled={isShuffling} className="flex items-center justify-center px-3 py-3 bg-indigo-600 text-white rounded-xl text-[14px] font-bold hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50 active:scale-95">
+                                            {isShuffling ? <Loader2 className="w-5 h-5 mr-1.5 animate-spin" /> : <Wand2 className="w-5 h-5 mr-1.5" />} <span className="whitespace-nowrap">배치 시작</span>
                                         </button>
                                     </div>
                                 </div>
