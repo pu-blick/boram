@@ -317,10 +317,14 @@ function SeatingApp({ uid }) {
                             </div>
                             <div className="space-y-2">
                                 <label className="hidden sm:block text-[12px] font-black text-slate-300 uppercase tracking-widest">View Option</label>
-                                {/* Mobile: segmented control */}
-                                <div className="grid grid-cols-2 bg-slate-50 p-1 rounded-lg border border-slate-200 lg:hidden">
-                                    <button onClick={() => setIsTeacherView(false)} className={`flex items-center justify-center py-2 rounded-lg text-[12px] font-bold transition-all ${!isTeacherView ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100' : 'text-slate-400'}`}>학생 시점</button>
-                                    <button onClick={() => setIsTeacherView(true)} className={`flex items-center justify-center py-2 rounded-lg text-[12px] font-bold transition-all ${isTeacherView ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100' : 'text-slate-400'}`}>교사 시점</button>
+                                {/* Mobile: 학생시점 + 결과공개 */}
+                                <div className="grid grid-cols-2 gap-2 lg:hidden">
+                                    <button onClick={() => setIsTeacherView(!isTeacherView)} className="flex items-center justify-center px-3 py-2 bg-white border border-slate-200 rounded-lg text-[12px] font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                                        <Users className="w-4 h-4 mr-1.5 text-slate-300" />{isTeacherView ? "교사 시점" : "학생 시점"}
+                                    </button>
+                                    <button onClick={handleRevealAll} className="flex items-center justify-center px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[12px] font-bold text-slate-700 hover:bg-slate-100 transition-all shadow-sm">
+                                        {isAllRevealed ? <><EyeOff className="w-4 h-4 mr-1.5 text-slate-400" /> 가리기</> : <><Sparkles className="w-4 h-4 mr-1.5 text-indigo-600" /> 결과 공개</>}
+                                    </button>
                                 </div>
                                 {/* PC: toggle button + reveal/shuffle */}
                                 <div className="hidden lg:grid grid-cols-1 gap-2">
