@@ -29,9 +29,6 @@ export default function RootLayout({ children }) {
                 <link rel="stylesheet" href="/legacy-style.css" />
             </head>
             <body>
-                <AuthProvider>
-                    {children}
-                </AuthProvider>
                 <div id="splash" style={{
                     position: 'fixed',
                     inset: 0,
@@ -45,12 +42,12 @@ export default function RootLayout({ children }) {
                     transition: 'opacity 0.4s',
                 }}>
                     <span style={{
-                        fontFamily: "Pretendard, sans-serif",
-                        fontSize: '36px',
-                        fontWeight: 700,
-                        letterSpacing: '6px',
+                        fontFamily: "'Josefin Sans', sans-serif",
+                        fontSize: '40px',
+                        fontWeight: 300,
+                        letterSpacing: '10px',
                         color: 'white',
-                    }}>에듀플로우</span>
+                    }}>EduFlow</span>
                     <span style={{
                         fontFamily: "Pretendard, sans-serif",
                         fontSize: '13px',
@@ -59,6 +56,9 @@ export default function RootLayout({ children }) {
                         letterSpacing: '2px',
                     }}>학교가는중....</span>
                 </div>
+                <AuthProvider>
+                    {children}
+                </AuthProvider>
             </body>
         </html>
     );
