@@ -2,15 +2,60 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Script from 'next/script';
-import { signOut } from 'firebase/auth';
 import { useAuth } from '../../components/AuthProvider';
-import { auth } from '../../lib/firebase';
 import { fetchAllStudentData, SHEET_IDS } from '../../lib/discipline';
 
 const VIEW_ALL = 'ALL';
 const VIEW_WARNING = 'WARNING';
 const VIEW_COMMITTEE = 'COMMITTEE';
+
+const S = {
+    page: { fontFamily: 'Pretendard, sans-serif', background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', minHeight: '100vh', paddingBottom: 80 },
+    header: { background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(12px)', color: 'white', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 60 },
+    headerInner: { maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+    titleRow: { display: 'flex', alignItems: 'center', gap: 12 },
+    backBtn: { background: 'none', border: 'none', color: 'white', fontSize: 16, cursor: 'pointer', padding: 8, borderRadius: 10 },
+    iconBox: { background: '#10b981', padding: 10, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    title: { fontSize: 20, fontWeight: 900, color: 'white', margin: 0 },
+    subtitle: { fontSize: 10, color: '#94a3b8', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginTop: 2 },
+    gradeRow: { display: 'flex', alignItems: 'center', gap: 8 },
+    gradeGroup: { display: 'flex', background: 'rgba(51,65,85,0.5)', padding: 4, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)' },
+    gradeBtn: (active, locked) => ({ padding: '8px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, border: 'none', cursor: locked ? 'not-allowed' : 'pointer', opacity: locked ? 0.4 : 1, background: active ? '#e11d48' : 'transparent', color: active ? 'white' : '#94a3b8', transition: 'all 0.2s', position: 'relative' }),
+    lockIcon: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'rgba(148,163,184,0.8)' },
+    syncBtn: (syncing) => ({ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: '1px solid white', cursor: 'pointer', background: syncing ? '#334155' : 'white', color: syncing ? '#94a3b8' : '#0f172a' }),
+    main: { maxWidth: 1200, margin: '0 auto', padding: '24px 16px' },
+    glass: { background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 16, padding: 16, marginBottom: 20 },
+    chipRow: { display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' },
+    chip: (active) => ({ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, border: active ? 'none' : '1px solid #e2e8f0', background: active ? '#0f172a' : 'white', color: active ? 'white' : '#475569', cursor: 'pointer' }),
+    cardGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 },
+    card: { background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 16, padding: 16, textAlign: 'center' },
+    cardIcon: (bg) => ({ width: 40, height: 40, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', color: 'white', fontSize: 18 }),
+    cardLabel: { fontSize: 11, color: '#64748b', fontWeight: 500, margin: 0 },
+    cardValue: { fontSize: 28, fontWeight: 900, color: '#0f172a', margin: '4px 0 0' },
+    tabRow: { display: 'flex', background: 'rgba(255,255,255,0.5)', padding: 4, borderRadius: 14, border: '1px solid rgba(255,255,255,0.6)', marginBottom: 20 },
+    tab: (active, color) => ({ flex: 1, padding: '10px 8px', borderRadius: 10, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', background: active ? (color || '#0f172a') : 'transparent', color: active ? 'white' : '#64748b', transition: 'all 0.2s' }),
+    dlBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#059669', color: 'white', padding: '12px 20px', borderRadius: 12, fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', width: '100%', marginBottom: 20 },
+    table: { width: '100%', borderCollapse: 'collapse' },
+    th: { padding: '12px 8px', fontSize: 11, fontWeight: 500, color: '#64748b', borderBottom: '1px solid #e2e8f0', textAlign: 'center' },
+    td: { padding: '12px 8px', borderBottom: '1px solid #f1f5f9', textAlign: 'center', verticalAlign: 'middle' },
+    badge: (bg) => ({ display: 'inline-block', padding: '3px 8px', borderRadius: 6, fontSize: 9, fontWeight: 900, color: 'white', background: bg }),
+    name: { fontSize: 14, fontWeight: 700, color: '#0f172a' },
+    studentId: { fontSize: 10, color: '#94a3b8', marginTop: 2 },
+    dot: (filled, level) => ({ width: 24, height: 24, borderRadius: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, margin: '0 2px', border: filled ? 'none' : '1px solid #e2e8f0', background: filled ? (level === 4 ? '#e11d48' : level === 3 ? '#f59e0b' : '#0f172a') : '#f8fafc', color: filled ? 'white' : '#cbd5e1', cursor: filled ? 'pointer' : 'default' }),
+    cycleLabel: { fontSize: 9, color: '#94a3b8', fontWeight: 500, marginRight: 6, paddingRight: 6, borderRight: '1px solid #e2e8f0' },
+    cycleGroup: { display: 'inline-flex', alignItems: 'center', background: 'rgba(255,255,255,0.8)', padding: '4px 6px', borderRadius: 10, marginRight: 8, marginBottom: 4 },
+    empty: { textAlign: 'center', padding: '80px 20px', color: '#94a3b8' },
+    emptyIcon: { fontSize: 40, opacity: 0.2, marginBottom: 16 },
+    emptyTitle: { fontSize: 18, fontWeight: 900, color: '#64748b' },
+    emptySub: { fontSize: 11, color: '#94a3b8', marginTop: 8 },
+    modal: { position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' },
+    modalBox: { background: 'white', borderRadius: 24, width: '100%', maxWidth: 360, padding: 24 },
+    modalLabel: { fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 4 },
+    modalValue: { fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 16 },
+    modalBtn: { width: '100%', padding: 14, borderRadius: 16, background: '#0f172a', color: 'white', fontSize: 15, fontWeight: 900, border: 'none', cursor: 'pointer' },
+    fab: { position: 'fixed', bottom: 24, right: 24, width: 48, height: 48, borderRadius: 14, background: '#1D6F42', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, border: 'none', cursor: 'pointer', zIndex: 100, textDecoration: 'none' },
+    spinner: { width: 40, height: 40, border: '4px solid #d1fae5', borderTop: '4px solid #10b981', borderRadius: '50%', animation: 'spin 1s linear infinite' },
+};
 
 export default function DisciplinePage() {
     const { user, role, loading: authLoading } = useAuth();
@@ -82,18 +127,11 @@ export default function DisciplinePage() {
         const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.setAttribute('href', URL.createObjectURL(blob));
-        link.setAttribute('download', viewMode === VIEW_WARNING ? `${selectedGrade}학년_주의대상_명단.csv` : viewMode === VIEW_COMMITTEE ? `${selectedGrade}학년_선도확정_명단.csv` : `${selectedGrade}학년_전체_명단.csv`);
+        link.setAttribute('download', `${selectedGrade}학년_명단.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
-
-    const getTabActiveClass = (id) => {
-        if (id === VIEW_ALL) return 'bg-slate-900 text-white shadow-lg';
-        if (id === VIEW_WARNING) return 'bg-amber-500 text-white shadow-lg';
-        if (id === VIEW_COMMITTEE) return 'bg-rose-600 text-white shadow-lg';
-        return 'bg-slate-900 text-white';
     };
 
     if (authLoading) return null;
@@ -101,231 +139,151 @@ export default function DisciplinePage() {
 
     return (
         <>
-            <Script src="https://cdn.tailwindcss.com" strategy="afterInteractive" />
-            <Script id="fa-css" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: `
-                if (!document.querySelector('link[href*="font-awesome"]')) {
-                    var l = document.createElement('link');
-                    l.rel = 'stylesheet';
-                    l.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
-                    document.head.appendChild(l);
-                }
-            `}} />
-            <style>{`
-                .disc-glass { background: rgba(255,255,255,0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 8px 32px 0 rgba(31,38,135,0.05); }
-                .disc-glass-dark { background: rgba(15,23,42,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-                .disc-page { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); min-height: 100vh; }
-                .disc-page ::-webkit-scrollbar { width: 8px; height: 8px; }
-                .disc-page ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
-                .disc-page ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
-
-            <div className="disc-page pb-20 overflow-x-hidden">
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div style={S.page}>
                 {/* Header */}
-                <header className="disc-glass-dark text-white p-4 md:p-6 shadow-2xl sticky top-0 z-[60] backdrop-blur-xl">
-                    <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6">
-                        <div className="flex items-center space-x-3 md:space-x-4">
-                            <button onClick={() => router.push('/')} className="p-2 hover:bg-white/10 rounded-xl transition-all">
-                                <i className="fa-solid fa-arrow-left text-white text-lg"></i>
-                            </button>
-                            <div className="bg-emerald-500 p-2 md:p-3 rounded-xl shadow-lg">
-                                <i className="fa-solid fa-users-viewfinder text-xl md:text-2xl text-white"></i>
-                            </div>
+                <header style={S.header}>
+                    <div style={S.headerInner}>
+                        <div style={S.titleRow}>
+                            <button style={S.backBtn} onClick={() => router.push('/')}><i className="fa-solid fa-arrow-left"></i></button>
+                            <div style={S.iconBox}><i className="fa-solid fa-users-viewfinder" style={{ fontSize: 20, color: 'white' }}></i></div>
                             <div>
-                                <h1 className="text-lg md:text-2xl font-black tracking-tight text-white text-nowrap">생활지도 통합 관리</h1>
-                                <div className="flex items-center space-x-2 mt-0.5 md:mt-1">
-                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                                    <p className="text-slate-400 text-[10px] md:text-[11px] font-bold uppercase tracking-widest whitespace-nowrap">Student Life Management</p>
-                                </div>
+                                <h1 style={S.title}>생활지도 통합 관리</h1>
+                                <div style={S.subtitle}><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', display: 'inline-block', marginRight: 6 }}></span>Student Life Management</div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
-                            <div className="flex bg-slate-800/50 p-1 rounded-xl border border-white/10 shadow-inner overflow-hidden">
+                        <div style={S.gradeRow}>
+                            <div style={S.gradeGroup}>
                                 {[1, 2, 3].map(grade => {
                                     const locked = grade === 1 || grade === 3;
                                     return (
-                                        <button key={grade} onClick={() => !locked && handleFetchSheet(grade)} disabled={locked}
-                                            className={`relative px-3 md:px-6 py-1.5 md:py-2.5 rounded-lg text-[12px] md:text-[15px] font-bold transition-all ${locked ? 'text-slate-600 cursor-not-allowed opacity-50' : selectedGrade === grade ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}>
-                                            {grade}학년
-                                            {locked && <i className="fa-solid fa-lock absolute -top-1 -right-1 text-[8px] text-slate-500 bg-slate-700 rounded-full p-1"></i>}
+                                        <button key={grade} style={S.gradeBtn(selectedGrade === grade, locked)}
+                                            onClick={() => !locked && handleFetchSheet(grade)} disabled={locked}>
+                                            {locked && <span style={S.lockIcon}><i className="fa-solid fa-lock"></i></span>}
+                                            <span style={{ opacity: locked ? 0.3 : 1 }}>{grade}학년</span>
                                         </button>
                                     );
                                 })}
                             </div>
-                            <button onClick={() => handleFetchSheet(selectedGrade)} disabled={isSyncing}
-                                className={`flex-1 md:flex-none flex items-center justify-center space-x-2 md:space-x-4 px-4 md:px-8 py-2.5 md:py-4 rounded-xl transition-all shadow-xl active:scale-95 border text-[14px] md:text-[18px] font-bold ${isSyncing ? 'bg-slate-700 text-slate-400 border-slate-600' : 'bg-white text-slate-900 border-white hover:bg-slate-100'}`}>
-                                <i className={`fa-solid fa-arrows-rotate ${isSyncing ? 'animate-spin' : ''}`}></i>
-                                <span className="whitespace-nowrap">조회</span>
+                            <button style={S.syncBtn(isSyncing)} onClick={() => handleFetchSheet(selectedGrade)} disabled={isSyncing}>
+                                <i className={`fa-solid fa-arrows-rotate${isSyncing ? ' fa-spin' : ''}`}></i> 조회
                             </button>
                         </div>
                     </div>
                 </header>
 
-                <main className="max-w-7xl mx-auto px-3 md:px-6 mt-6 md:mt-10 space-y-6 md:space-y-10">
-                    {/* Class Filter */}
-                    {(loadedSheets.length > 0 || isSyncing) && (
-                        <div className="disc-glass py-3 md:py-6 px-3 md:px-6 rounded-2xl md:rounded-3xl border border-white/80 shadow-sm flex flex-col items-center gap-1.5 md:gap-2">
-                            {isSyncing && loadedSheets.length === 0 ? (
-                                <div className="flex items-center space-x-2 text-slate-400 font-bold text-xs md:text-sm animate-pulse py-2">
-                                    <i className="fa-solid fa-spinner animate-spin text-emerald-500"></i>
-                                    <span>동기화 중...</span>
+                <div style={S.main}>
+                    {/* Class chips */}
+                    {loadedSheets.length > 0 && (
+                        <div style={S.glass}>
+                            <div style={S.chipRow}>
+                                {loadedSheets.slice(0, 5).map(s => (
+                                    <button key={s} style={S.chip(selectedClass === s)} onClick={() => setSelectedClass(selectedClass === s ? null : s)}>
+                                        ✓ {s}
+                                    </button>
+                                ))}
+                            </div>
+                            {loadedSheets.length > 5 && (
+                                <div style={{ ...S.chipRow, marginTop: 6 }}>
+                                    {loadedSheets.slice(5).map(s => (
+                                        <button key={s} style={S.chip(selectedClass === s)} onClick={() => setSelectedClass(selectedClass === s ? null : s)}>
+                                            ✓ {s}
+                                        </button>
+                                    ))}
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="flex justify-center items-center gap-1.5 md:gap-2">
-                                        {loadedSheets.slice(0, 5).map(s => (
-                                            <button key={s} onClick={() => setSelectedClass(selectedClass === s ? null : s)}
-                                                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[11px] md:text-[13px] font-bold transition-all ${selectedClass === s ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-100 hover:border-slate-300'}`}>
-                                                {s}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {loadedSheets.length > 5 && (
-                                        <div className="flex justify-center items-center gap-1.5 md:gap-2">
-                                            {loadedSheets.slice(5).map(s => (
-                                                <button key={s} onClick={() => setSelectedClass(selectedClass === s ? null : s)}
-                                                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[11px] md:text-[13px] font-bold transition-all ${selectedClass === s ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-100 hover:border-slate-300'}`}>
-                                                    {s}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </>
                             )}
                         </div>
                     )}
 
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-3 gap-2 md:gap-8">
+                    <div style={S.cardGrid}>
                         {[
-                            { title: '기록 학생', value: students.length, icon: 'fa-solid fa-user-group', color: 'bg-slate-800' },
-                            { title: '주의 대상', value: students.filter(s => s.records.some(r => r.session === 3)).length, icon: 'fa-solid fa-triangle-exclamation', color: 'bg-amber-500' },
-                            { title: '선도 확정', value: students.filter(s => s.records.some(r => r.session === 4)).length, icon: 'fa-solid fa-gavel', color: 'bg-rose-600' },
-                        ].map(card => (
-                            <div key={card.title} className="disc-glass p-3 md:p-6 rounded-xl md:rounded-2xl flex flex-col md:flex-row items-center md:items-center space-y-2 md:space-y-0 md:space-x-6 transition-all hover:translate-y-[-2px] hover:shadow-lg border border-white/60">
-                                <div className={`${card.color} w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-xl flex items-center justify-center text-white text-lg md:text-2xl shadow-lg shrink-0`}>
-                                    <i className={card.icon}></i>
-                                </div>
-                                <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                                    <p className="text-[10px] md:text-[17px] font-medium text-slate-500 mb-0.5 tracking-tight leading-tight whitespace-nowrap">{card.title}</p>
-                                    <div className="flex items-baseline space-x-0.5 md:space-x-1">
-                                        <span className="text-xl md:text-3xl font-black text-slate-800 tracking-tighter">{card.value}</span>
-                                        <span className="text-[9px] md:text-sm font-bold text-slate-500">명</span>
-                                    </div>
-                                </div>
+                            { label: '기록 학생', value: students.length, bg: '#0f172a', icon: 'fa-solid fa-user-group' },
+                            { label: '주의 대상', value: students.filter(s => s.records.some(r => r.session === 3)).length, bg: '#f59e0b', icon: 'fa-solid fa-triangle-exclamation' },
+                            { label: '선도 확정', value: students.filter(s => s.records.some(r => r.session === 4)).length, bg: '#e11d48', icon: 'fa-solid fa-gavel' },
+                        ].map(c => (
+                            <div key={c.label} style={S.card}>
+                                <div style={S.cardIcon(c.bg)}><i className={c.icon}></i></div>
+                                <p style={S.cardLabel}>{c.label}</p>
+                                <p style={S.cardValue}>{c.value}<span style={{ fontSize: 12, fontWeight: 500, color: '#64748b' }}>명</span></p>
                             </div>
                         ))}
                     </div>
 
-                    {/* View Mode Tabs + Download */}
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                        <div className="flex bg-white/50 backdrop-blur-md p-1 rounded-xl md:rounded-2xl border border-white/60 shadow-sm w-full lg:w-auto overflow-hidden">
-                            {[
-                                { id: VIEW_ALL, label: '전체보기', icon: 'fa-list' },
-                                { id: VIEW_WARNING, label: '주의대상(3회)', icon: 'fa-bell' },
-                                { id: VIEW_COMMITTEE, label: '선도확정(4회)', icon: 'fa-gavel' }
-                            ].map(tab => (
-                                <button key={tab.id} onClick={() => setViewMode(tab.id)}
-                                    className={`flex-1 flex items-center justify-center space-x-1 md:space-x-2 px-3 md:px-8 py-2.5 md:py-3.5 rounded-lg md:rounded-xl text-[11px] md:text-[15px] font-bold transition-all whitespace-nowrap ${viewMode === tab.id ? getTabActiveClass(tab.id) : 'text-slate-500 hover:text-slate-800'}`}>
-                                    <i className={`fa-solid ${tab.icon} hidden sm:inline text-[9px] md:text-[11px]`}></i>
-                                    <span>{tab.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                        {filteredStudents.length > 0 && (
-                            <button onClick={handleDownloadCSV} className="w-full lg:w-auto flex items-center justify-center space-x-2 bg-emerald-600 text-white px-6 md:px-10 py-3 md:py-4 rounded-xl text-[13px] md:text-[15px] font-bold hover:bg-emerald-700 transition-all shadow-lg active:scale-95 whitespace-nowrap">
-                                <i className="fa-solid fa-file-excel text-base md:text-lg"></i>
-                                <span>{selectedGrade}학년 엑셀 다운로드</span>
+                    {/* Tabs */}
+                    <div style={S.tabRow}>
+                        {[
+                            { id: VIEW_ALL, label: '전체보기', icon: 'fa-list', color: '#0f172a' },
+                            { id: VIEW_WARNING, label: '주의대상(3회)', icon: 'fa-bell', color: '#f59e0b' },
+                            { id: VIEW_COMMITTEE, label: '선도확정(4회)', icon: 'fa-gavel', color: '#e11d48' },
+                        ].map(t => (
+                            <button key={t.id} style={S.tab(viewMode === t.id, t.color)} onClick={() => setViewMode(t.id)}>
+                                <i className={`fa-solid ${t.icon}`} style={{ marginRight: 4, fontSize: 10 }}></i>{t.label}
                             </button>
-                        )}
+                        ))}
                     </div>
 
-                    {/* Data Table */}
-                    <div className="disc-glass rounded-2xl md:rounded-3xl overflow-hidden min-h-[400px] border border-white/80 shadow-sm">
+                    {/* Download */}
+                    {filteredStudents.length > 0 && (
+                        <button style={S.dlBtn} onClick={handleDownloadCSV}>
+                            <i className="fa-solid fa-file-excel"></i> {selectedGrade}학년 엑셀 다운로드
+                        </button>
+                    )}
+
+                    {/* Data */}
+                    <div style={S.glass}>
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center py-40 md:py-56 space-y-4 md:space-y-6">
-                                <div className="relative w-12 h-12 md:w-16 md:h-16">
-                                    <div className="absolute inset-0 rounded-full border-4 border-emerald-100"></div>
-                                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
-                                </div>
-                                <p className="font-bold text-slate-400 text-base md:text-lg tracking-tight">{selectedGrade}학년 데이터 분석 중...</p>
+                            <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                                <div style={{ ...S.spinner, margin: '0 auto 16px' }}></div>
+                                <p style={{ color: '#64748b', fontWeight: 700 }}>{selectedGrade}학년 데이터 분석 중...</p>
                             </div>
                         ) : filteredStudents.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={S.table}>
                                     <thead>
-                                        <tr className="border-b border-slate-200/50 bg-slate-50/50">
-                                            <th className="px-3 md:px-10 py-4 md:py-8 text-[11px] md:text-[15px] font-medium text-slate-500 whitespace-nowrap text-center w-12 md:w-24">학급</th>
-                                            <th className="px-3 md:px-10 py-4 md:py-8 text-[11px] md:text-[15px] font-medium text-slate-500 whitespace-nowrap text-center w-[85px] md:w-40">학생 정보</th>
-                                            <th className="px-3 md:px-10 py-4 md:py-8 text-[11px] md:text-[15px] font-medium text-slate-500 whitespace-nowrap text-left">누적 기록</th>
-                                            <th className="hidden md:table-cell px-10 py-8 text-[15px] font-medium text-slate-500 text-center whitespace-nowrap">최종 판정</th>
+                                        <tr>
+                                            <th style={S.th}>학급</th>
+                                            <th style={S.th}>학생 정보</th>
+                                            <th style={{ ...S.th, textAlign: 'left' }}>누적 기록</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100/50">
+                                    <tbody>
                                         {filteredStudents.map(student => {
-                                            const hasCommittee = student.records.some(r => r.session === 4);
-                                            const hasWarning = student.records.some(r => r.session === 3);
+                                            const hasC = student.records.some(r => r.session === 4);
+                                            const hasW = student.records.some(r => r.session === 3);
                                             return (
-                                                <tr key={student.id} className="hover:bg-white/60 transition-colors group">
-                                                    <td className="px-3 md:px-10 py-4 md:py-8 text-center align-middle">
-                                                        <span className="inline-flex items-center justify-center bg-slate-100 text-slate-600 w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl font-black text-[11px] md:text-sm border border-slate-200">
+                                                <tr key={student.id}>
+                                                    <td style={S.td}>
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', fontWeight: 900, fontSize: 11, color: '#475569', border: '1px solid #e2e8f0' }}>
                                                             {student.class.replace('반', '')}
                                                         </span>
                                                     </td>
-                                                    <td className="px-2 md:px-10 py-4 md:py-8 align-middle">
-                                                        <div className="flex flex-col items-center justify-center text-center">
-                                                            <div className="md:hidden mb-1.5 h-4">
-                                                                {hasCommittee ? (
-                                                                    <span className="bg-rose-600 text-white text-[9px] px-2 py-0.5 rounded-md font-black animate-pulse">선도</span>
-                                                                ) : hasWarning ? (
-                                                                    <span className="bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-md font-black">주의</span>
-                                                                ) : null}
-                                                            </div>
-                                                            <span className="font-bold text-slate-900 text-[14px] md:text-[17px] leading-tight whitespace-nowrap">{student.name}</span>
-                                                            <span className="text-[10px] md:text-[13px] text-slate-400 font-medium mt-1 whitespace-nowrap">{student.id}</span>
-                                                        </div>
+                                                    <td style={S.td}>
+                                                        {hasC && <div style={S.badge('#e11d48')}>선도</div>}
+                                                        {!hasC && hasW && <div style={S.badge('#f59e0b')}>주의</div>}
+                                                        <div style={S.name}>{student.name}</div>
+                                                        <div style={S.studentId}>{student.id}</div>
                                                     </td>
-                                                    <td className="px-3 md:px-10 py-4 md:py-8 align-middle">
-                                                        <div className="flex flex-wrap gap-2 md:gap-4 justify-start">
+                                                    <td style={{ ...S.td, textAlign: 'left' }}>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
                                                             {[1, 2, 3, 4].map(cycle => {
-                                                                const cycleRecs = student.records.filter(r => r.cycle === cycle);
-                                                                if (cycleRecs.length === 0) return null;
+                                                                const recs = student.records.filter(r => r.cycle === cycle);
+                                                                if (recs.length === 0) return null;
                                                                 return (
-                                                                    <div key={cycle} className="flex items-center space-x-1.5 md:space-x-3 bg-white/80 p-1.5 md:p-2.5 rounded-lg md:rounded-xl border border-white shadow-sm">
-                                                                        <span className="text-[9px] md:text-[13px] font-medium text-slate-400 px-1.5 md:px-3 border-r border-slate-100 whitespace-nowrap">{cycle}차</span>
-                                                                        <div className="flex space-x-1 md:space-x-2">
-                                                                            {[1, 2, 3, 4].map(s => {
-                                                                                const r = cycleRecs.find(x => x.session === s);
-                                                                                return (
-                                                                                    <div key={s}
-                                                                                        className={`w-6 h-6 md:w-9 md:h-9 rounded-md md:rounded-lg flex items-center justify-center text-[10px] md:text-[13px] font-black border transition-all ${r ? (s === 4 ? 'bg-rose-600 border-rose-600 text-white shadow-lg' : s === 3 ? 'bg-amber-500 border-amber-500 text-white shadow-lg' : 'bg-slate-800 border-slate-800 text-white shadow-lg') : 'bg-slate-50 border-slate-100 text-slate-200'}`}
-                                                                                        title={r ? `날짜: ${r.date}\n사유: ${r.reason}` : '기록 없음'}
-                                                                                        onClick={() => { if (r) setSelectedRecord(r); }}
-                                                                                        style={{ cursor: r ? 'pointer' : 'default', touchAction: 'manipulation' }}>
-                                                                                        <span className="pointer-events-none">{s}</span>
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
+                                                                    <div key={cycle} style={S.cycleGroup}>
+                                                                        <span style={S.cycleLabel}>{cycle}차</span>
+                                                                        {[1, 2, 3, 4].map(s => {
+                                                                            const r = recs.find(x => x.session === s);
+                                                                            return (
+                                                                                <div key={s} style={S.dot(!!r, s)}
+                                                                                    onClick={() => r && setSelectedRecord(r)}>
+                                                                                    {s}
+                                                                                </div>
+                                                                            );
+                                                                        })}
                                                                     </div>
                                                                 );
                                                             })}
-                                                        </div>
-                                                    </td>
-                                                    <td className="hidden md:table-cell px-10 py-8 text-center align-middle">
-                                                        <div className="inline-flex flex-col items-center gap-2 w-full">
-                                                            {hasCommittee ? (
-                                                                <span className="inline-flex items-center bg-rose-600 text-white px-6 py-3 rounded-xl text-[15px] font-bold shadow-xl animate-pulse whitespace-nowrap">
-                                                                    <i className="fa-solid fa-gavel mr-2.5"></i>선도위원회 확정
-                                                                </span>
-                                                            ) : hasWarning ? (
-                                                                <span className="inline-flex items-center bg-amber-500 text-white px-6 py-3 rounded-xl text-[15px] font-bold shadow-xl whitespace-nowrap">
-                                                                    <i className="fa-solid fa-triangle-exclamation mr-2.5"></i>주의 (3회 기록)
-                                                                </span>
-                                                            ) : (
-                                                                <span className="bg-slate-100 text-slate-400 px-6 py-3 rounded-xl text-[15px] font-bold whitespace-nowrap">생활지도 대상</span>
-                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -335,52 +293,30 @@ export default function DisciplinePage() {
                                 </table>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-40 md:py-64 text-slate-300 space-y-6 md:space-y-8">
-                                <div className="bg-white w-20 h-20 md:w-28 md:h-28 rounded-2xl md:rounded-3xl flex items-center justify-center text-3xl md:text-4xl mb-2 border border-slate-100 shadow-sm">
-                                    <i className="fa-solid fa-magnifying-glass opacity-20"></i>
-                                </div>
-                                <div className="text-center px-4">
-                                    <p className="font-black text-slate-400 text-xl md:text-2xl tracking-tight">조회된 데이터가 없습니다.</p>
-                                    <p className="text-[10px] md:text-sm font-bold text-slate-400/60 mt-3 uppercase tracking-widest">학년 탭을 눌러 시트를 동기화하세요</p>
-                                </div>
+                            <div style={S.empty}>
+                                <div style={S.emptyIcon}><i className="fa-solid fa-magnifying-glass"></i></div>
+                                <p style={S.emptyTitle}>조회된 데이터가 없습니다.</p>
+                                <p style={S.emptySub}>학년 탭을 눌러 시트를 동기화하세요</p>
                             </div>
                         )}
                     </div>
-                </main>
+                </div>
 
-                {/* Record Detail Modal */}
+                {/* Modal */}
                 {selectedRecord && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 backdrop-blur-sm bg-slate-900/40">
-                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
-                            <div className="p-6 md:p-8 space-y-6">
-                                <div className="space-y-4">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 mt-2.5 shrink-0" />
-                                        <div>
-                                            <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider mb-1">날짜/사유 :</p>
-                                            <p className="text-[16px] font-bold text-slate-800 leading-relaxed">{selectedRecord.date}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-2.5 shrink-0" />
-                                        <div>
-                                            <p className="text-[13px] font-bold text-slate-400 uppercase tracking-wider mb-1">누적횟수 :</p>
-                                            <p className="text-[16px] font-bold text-slate-800 leading-relaxed">{selectedRecord.reason}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onClick={() => setSelectedRecord(null)}
-                                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[16px] hover:bg-slate-800 transition-colors shadow-lg active:scale-95">
-                                    확인
-                                </button>
-                            </div>
+                    <div style={S.modal}>
+                        <div style={S.modalBox}>
+                            <p style={S.modalLabel}>날짜/사유 :</p>
+                            <p style={S.modalValue}>{selectedRecord.date}</p>
+                            <p style={S.modalLabel}>누적횟수 :</p>
+                            <p style={S.modalValue}>{selectedRecord.reason}</p>
+                            <button style={S.modalBtn} onClick={() => setSelectedRecord(null)}>확인</button>
                         </div>
                     </div>
                 )}
 
-                {/* Google Sheets Link */}
-                <a href={`https://docs.google.com/spreadsheets/d/${SHEET_IDS[selectedGrade]}/edit`} target="_blank" rel="noreferrer"
-                    className="fixed bottom-6 right-6 md:bottom-10 md:right-10 bg-[#1D6F42] hover:bg-[#155231] text-white w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl shadow-2xl flex items-center justify-center text-2xl md:text-3xl transition-all hover:scale-110 active:scale-95 z-[100]">
+                {/* FAB */}
+                <a href={`https://docs.google.com/spreadsheets/d/${SHEET_IDS[selectedGrade]}/edit`} target="_blank" rel="noreferrer" style={S.fab}>
                     <i className="fa-solid fa-file-excel"></i>
                 </a>
             </div>

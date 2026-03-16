@@ -12,7 +12,6 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [splashVisible, setSplashVisible] = useState(true);
 
     useEffect(() => {
         if ('serviceWorker' in navigator) {
@@ -20,13 +19,13 @@ export function AuthProvider({ children }) {
         }
     }, []);
 
-    // 로딩 완료 시 스플래시 페이드 아웃 (0.4s transition 후 제거)
+    // auth 로딩 완료 시 app-loading 클래스 제거 → 콘텐츠 표시
     useEffect(() => {
-        if (!loading && splashVisible) {
-            const timer = setTimeout(() => setSplashVisible(false), 500);
-            return () => clearTimeout(timer);
+        if (!loading) {
+            document.documentElement.classList.remove('app-loading');
+            document.documentElement.classList.add('app-loaded');
         }
-    }, [loading, splashVisible]);
+    }, [loading]);
 
     useEffect(() => {
         if (!auth) { setLoading(false); return; }
@@ -76,37 +75,6 @@ export function AuthProvider({ children }) {
     return (
         <AuthContext.Provider value={{ user, role, loading }}>
             {children}
-            {splashVisible && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 99999,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '16px',
-                    background: '#062117',
-                    opacity: loading ? 1 : 0,
-                    transition: 'opacity 0.4s ease',
-                    pointerEvents: loading ? 'auto' : 'none',
-                }}>
-                    <span style={{
-                        fontFamily: "'Josefin Sans', sans-serif",
-                        fontSize: '40px',
-                        fontWeight: 300,
-                        letterSpacing: '10px',
-                        color: 'white',
-                    }}>EduFlow</span>
-                    <span style={{
-                        fontFamily: "Pretendard, sans-serif",
-                        fontSize: '13px',
-                        fontWeight: 300,
-                        color: 'rgba(255,255,255,0.5)',
-                        letterSpacing: '2px',
-                    }}>학교가는중....</span>
-                </div>
-            )}
         </AuthContext.Provider>
     );
 }

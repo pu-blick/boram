@@ -9,6 +9,7 @@ import { db, setUserRole, getSchedules, setSchedule } from '../../lib/firebase';
 export default function AdminPage() {
     const { user, role, loading } = useAuth();
     const [users, setUsers] = useState([]);
+    const [activeTab, setActiveTab] = useState('schedule');
     const router = useRouter();
 
     useEffect(() => {
@@ -60,61 +61,88 @@ export default function AdminPage() {
         }
     }
 
+    const tabStyle = (active) => ({
+        flex: 1,
+        padding: '12px 0',
+        textAlign: 'center',
+        fontSize: 14,
+        fontWeight: 700,
+        cursor: 'pointer',
+        border: 'none',
+        borderBottom: active ? '3px solid #3b82f6' : '3px solid transparent',
+        background: active ? '#eff6ff' : 'transparent',
+        color: active ? '#1e40af' : '#94a3b8',
+        transition: 'all 0.2s',
+        borderRadius: '8px 8px 0 0',
+    });
+
     return (
         <div className="admin-page">
             <div className="admin-header">
-                <h1>사용자 관리</h1>
+                <h1>관리자</h1>
                 <a href="/" className="admin-back">홈으로</a>
             </div>
 
-            <ScheduleManager />
-
-            <div className="admin-header" style={{ marginTop: 40, marginBottom: 16 }}>
-                <h1>사용자 관리</h1>
-            </div>
-            <div className="user-list">
-                {users.map((u) => (
-                    <div className="user-card" key={u.uid}>
-                        <div className="user-info">
-                            <span className="user-email">
-                                {u.displayName || u.email}
-                                {u.displayName && <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 12, marginLeft: 8 }}>{u.email}</span>}
-                            </span>
-                            <span className="user-date">
-                                가입: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'}
-                            </span>
-                        </div>
-                        <div className="user-actions">
-                            {u.role === 'pending' && (
-                                <>
-                                    <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
-                                    <button className="btn-reject" onClick={() => handleReject(u.uid)}>거부</button>
-                                </>
-                            )}
-                            {u.role === 'approved' && (
-                                <>
-                                    <span className="user-role-badge badge-approved">승인됨</span>
-                                    <button className="btn-approve" onClick={() => handleSetAdmin(u.uid)} style={{ background: '#3b82f6', fontSize: 11 }}>관리자 지정</button>
-                                </>
-                            )}
-                            {u.role === 'admin' && (
-                                <span className="user-role-badge badge-admin">관리자</span>
-                            )}
-                            {u.role === 'rejected' && (
-                                <>
-                                    <span className="user-role-badge" style={{ background: '#fee2e2', color: '#dc2626' }}>거부됨</span>
-                                    <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                ))}
-
-                {users.length === 0 && (
-                    <p style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>등록된 사용자가 없습니다.</p>
-                )}
+            {/* Tabs */}
+            <div style={{ display: 'flex', marginBottom: 24, borderBottom: '1px solid #e2e8f0' }}>
+                <button style={tabStyle(activeTab === 'schedule')} onClick={() => setActiveTab('schedule')}>
+                    <span className="material-symbols-rounded" style={{ fontSize: 18, verticalAlign: 'middle', marginRight: 4 }}>calendar_month</span>
+                    일정 관리
+                </button>
+                <button style={tabStyle(activeTab === 'users')} onClick={() => setActiveTab('users')}>
+                    <span className="material-symbols-rounded" style={{ fontSize: 18, verticalAlign: 'middle', marginRight: 4 }}>group</span>
+                    사용자 관리
+                </button>
             </div>
 
+            {/* Schedule Tab */}
+            {activeTab === 'schedule' && <ScheduleManager />}
+
+            {/* Users Tab */}
+            {activeTab === 'users' && (
+                <div className="user-list">
+                    {users.map((u) => (
+                        <div className="user-card" key={u.uid}>
+                            <div className="user-info">
+                                <span className="user-email">
+                                    {u.displayName || u.email}
+                                    {u.displayName && <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 12, marginLeft: 8 }}>{u.email}</span>}
+                                </span>
+                                <span className="user-date">
+                                    가입: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'}
+                                </span>
+                            </div>
+                            <div className="user-actions">
+                                {u.role === 'pending' && (
+                                    <>
+                                        <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
+                                        <button className="btn-reject" onClick={() => handleReject(u.uid)}>거부</button>
+                                    </>
+                                )}
+                                {u.role === 'approved' && (
+                                    <>
+                                        <span className="user-role-badge badge-approved">승인됨</span>
+                                        <button className="btn-approve" onClick={() => handleSetAdmin(u.uid)} style={{ background: '#3b82f6', fontSize: 11 }}>관리자 지정</button>
+                                    </>
+                                )}
+                                {u.role === 'admin' && (
+                                    <span className="user-role-badge badge-admin">관리자</span>
+                                )}
+                                {u.role === 'rejected' && (
+                                    <>
+                                        <span className="user-role-badge" style={{ background: '#fee2e2', color: '#dc2626' }}>거부됨</span>
+                                        <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+
+                    {users.length === 0 && (
+                        <p style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>등록된 사용자가 없습니다.</p>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
@@ -123,12 +151,12 @@ function ScheduleManager() {
     const today = new Date();
     const [year, setYear] = useState(today.getFullYear());
     const [month, setMonth] = useState(today.getMonth() + 1);
-    const [schedules, setSchedules] = useState({});
+    const [schedules, setSchedulesState] = useState({});
     const [editDay, setEditDay] = useState(null);
     const [editText, setEditText] = useState('');
 
     useEffect(() => {
-        getSchedules(year, month).then(setSchedules);
+        getSchedules(year, month).then(setSchedulesState);
     }, [year, month]);
 
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -153,17 +181,13 @@ function ScheduleManager() {
         if (editDay === null) return;
         await setSchedule(year, month, editDay, editText.trim() || null);
         const updated = await getSchedules(year, month);
-        setSchedules(updated);
+        setSchedulesState(updated);
         setEditDay(null);
         setEditText('');
     };
 
     return (
-        <div style={{ marginTop: 32 }}>
-            <div className="admin-header" style={{ marginBottom: 16 }}>
-                <h1>달력 일정 관리</h1>
-            </div>
-
+        <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <button onClick={prevMonth} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>◀</button>
                 <span style={{ fontWeight: 700, fontSize: 18 }}>{year}년 {month}월</span>
@@ -181,11 +205,17 @@ function ScheduleManager() {
                     const d = i + 1;
                     const hasEvent = !!schedules[d];
                     const isEditing = editDay === d;
+                    const todayDate = new Date();
+                    const isToday = todayDate.getFullYear() === year && todayDate.getMonth() + 1 === month && todayDate.getDate() === d;
                     return (
                         <div key={d} onClick={() => handleDayClick(d)}
-                            style={{ minHeight: 48, padding: '4px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 12, textAlign: 'center', border: isEditing ? '2px solid #3b82f6' : '1px solid #f1f5f9', background: isEditing ? '#eff6ff' : hasEvent ? '#f0fdf4' : '#fff', transition: 'all 0.15s' }}>
-                            <div style={{ fontWeight: 600, marginBottom: 2 }}>{d}</div>
-                            {hasEvent && <div style={{ fontSize: 9, color: '#2563eb', fontWeight: 600, lineHeight: 1.2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{schedules[d]}</div>}
+                            style={{ minHeight: 56, padding: '4px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 12, textAlign: 'center', border: isEditing ? '2px solid #3b82f6' : isToday ? '2px solid #10b981' : '1px solid #f1f5f9', background: isEditing ? '#eff6ff' : hasEvent ? '#f0fdf4' : '#fff', transition: 'all 0.15s' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 2, color: isToday ? '#10b981' : undefined }}>{d}</div>
+                            {hasEvent && (
+                                <div style={{ fontSize: 9, color: '#059669', fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'pre-line' }}>
+                                    {schedules[d]}
+                                </div>
+                            )}
                         </div>
                     );
                 })}
@@ -193,14 +223,21 @@ function ScheduleManager() {
 
             {editDay !== null && (
                 <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, border: '1px solid #e2e8f0' }}>
-                    <p style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>{month}월 {editDay}일 일정</p>
-                    <input
-                        type="text"
+                    <p style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: 18, verticalAlign: 'middle', marginRight: 4, color: '#3b82f6' }}>edit_calendar</span>
+                        {year}년 {month}월 {editDay}일
+                    </p>
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>엔터로 줄바꿈 (최대 3줄)</p>
+                    <textarea
                         value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        placeholder="일정을 입력하세요 (비우면 삭제)"
+                        onChange={(e) => {
+                            const lines = e.target.value.split('\n');
+                            if (lines.length <= 3) setEditText(e.target.value);
+                        }}
+                        placeholder={'1줄: 일정 제목\n2줄: 시간/장소\n3줄: 비고'}
+                        rows={3}
                         autoFocus
-                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid #cbd5e0', borderRadius: 8, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid #cbd5e0', borderRadius: 8, outline: 'none', marginBottom: 8, boxSizing: 'border-box', resize: 'none', lineHeight: 1.6, fontFamily: 'Pretendard, sans-serif' }}
                     />
                     <div style={{ display: 'flex', gap: 8 }}>
                         <button onClick={handleSave} style={{ flex: 1, padding: '10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>저장</button>

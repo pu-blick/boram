@@ -15,7 +15,7 @@ export const metadata = {
         title: 'EduFlow',
     },
     icons: {
-        apple: '/icon-192.png',
+        apple: '/flow.png',
     },
     other: {
         'mobile-web-app-capable': 'yes',
@@ -30,6 +30,36 @@ export default function RootLayout({ children }) {
                 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400&display=swap" />
                 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
                 <link rel="stylesheet" href="/legacy-style.css" />
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+                <script dangerouslySetInnerHTML={{ __html: `
+                    document.documentElement.classList.add('app-loading');
+                `}} />
+                <style dangerouslySetInnerHTML={{ __html: `
+                    html.app-loading body {
+                        background: #062117 !important;
+                        overflow: hidden;
+                    }
+                    html.app-loading body > * {
+                        visibility: hidden;
+                    }
+                    html.app-loading::after {
+                        content: '';
+                        position: fixed;
+                        inset: 0;
+                        z-index: 99999;
+                        background: #062117;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    html.app-loaded body {
+                        background: var(--bg) !important;
+                        transition: background 0.4s ease;
+                    }
+                    html.app-loaded body > * {
+                        visibility: visible;
+                    }
+                `}} />
             </head>
             <body>
                 <AuthProvider>

@@ -111,7 +111,7 @@ function MainSite({ role }) {
                     <li><a href="https://www.notion.so/2ffeaefe31828034a444d95d990c6561" target="_blank"><span className="material-symbols-rounded">calendar_month</span> 학사일정</a></li>
                     <li><a href="https://www.notion.so/306eaefe3182802cb920fd4ad04cc492" target="_blank"><span className="material-symbols-rounded">checklist</span> 창체일정</a></li>
                     <li><a href="https://www.notion.so/2026-2-2ffeaefe318280c7bf90d1dee06f5f2f" target="_blank"><span className="material-symbols-rounded">groups</span> NOTION</a></li>
-                    <li><a href="https://www.notion.so/305eaefe318280aab667e41088ac32af" target="_blank"><span className="material-symbols-rounded">school</span> 입시컨설팅</a></li>
+                    <li><a href="https://www.notion.so/303eaefe318280289edcc49f8850d826" target="_blank"><span className="material-symbols-rounded">school</span> 입시컨설팅</a></li>
                     <li><a href="#"><span className="material-symbols-rounded">directions_bus</span> 수학여행</a></li>
                     {role === 'admin' && (
                         <li><a href="/admin"><span className="material-symbols-rounded">admin_panel_settings</span> 관리자</a></li>
@@ -148,7 +148,7 @@ function MainSite({ role }) {
                             <div className="card-thumb"><img src="/노션기록.jpeg" alt="NOTION" /></div>
                             <span className="card-label">NOTION</span>
                         </a>
-                        <a href="https://www.notion.so/305eaefe318280aab667e41088ac32af" target="_blank" className="card">
+                        <a href="https://www.notion.so/303eaefe318280289edcc49f8850d826" target="_blank" className="card">
                             <div className="card-thumb"><img src="/규정모음_2.png" alt="입시컨설팅" /></div>
                             <span className="card-label">입시컨설팅</span>
                         </a>
@@ -271,7 +271,9 @@ function WeeklySchedule() {
                         if (matchDate(lastDate, month, day)) {
                             if (!result[d]) result[d] = [];
                             const period = row[1] || '';
-                            result[d].push(period ? `${period}교시 ${event}` : event);
+                            const pNum = parseInt(period);
+                            const prefix = pNum >= 1 && pNum <= 7 ? String(pNum) : '';
+                            result[d].push({ num: prefix, text: event });
                         }
                     }
                 }
@@ -306,7 +308,14 @@ function WeeklySchedule() {
                                 <div style={{ fontSize: 14, fontWeight: isToday ? 800 : 600, color: isToday ? '#1e40af' : '#475569' }}>{date.getDate()}</div>
                             </div>
                             {events.length > 0 ? events.map((e, j) => (
-                                <div key={j} style={{ fontSize: 9, color: '#059669', lineHeight: 1.3, marginBottom: 3, wordBreak: 'keep-all' }}>{e}</div>
+                                <div key={j} style={{ fontSize: 10, color: '#059669', fontWeight: 400, lineHeight: 1.2, marginBottom: 2, wordBreak: 'keep-all', textAlign: 'center' }}>
+                                    {e.num ? (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                            <span style={{ fontSize: 9, fontWeight: 700, color: 'white', background: '#3b82f6', borderRadius: 4, width: 16, height: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{e.num}</span>
+                                            <span>{e.text}</span>
+                                        </span>
+                                    ) : e.text}
+                                </div>
                             )) : (
                                 <div style={{ fontSize: 9, color: '#cbd5e1', textAlign: 'center', marginTop: 8 }}>-</div>
                             )}

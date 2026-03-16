@@ -1,6 +1,6 @@
 {
     "name": "보람고등학교 2학년부",
-    "short_name": "보람고",
+    "short_name": "EduFlow",
     "description": "보람고등학교 2학년부 홈페이지",
     "start_url": "/",
     "display": "standalone",
@@ -9,19 +9,19 @@
     "orientation": "portrait",
     "icons": [
         {
-            "src": "/icon-192.png",
+            "src": "/flow.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/icon-512.png",
+            "src": "/flow.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/icon-maskable.png",
+            "src": "/flow.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
