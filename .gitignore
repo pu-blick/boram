@@ -21,6 +21,11 @@ style.css
 /공동체 관리대장.png
 /노션기록.jpeg
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # IDE / tool config
 .cursor/
 .codex/

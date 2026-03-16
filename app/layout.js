@@ -1,11 +1,14 @@
 import './globals.css';
 import { AuthProvider } from '../components/AuthProvider';
 
+export const viewport = {
+    themeColor: '#1a2a4a',
+};
+
 export const metadata = {
     title: 'EduFlow - 에듀플로우',
     description: '에듀플로우 - 학급 운영 서비스',
     manifest: '/manifest.json',
-    themeColor: '#1a2a4a',
     appleWebApp: {
         capable: true,
         statusBarStyle: 'black-translucent',

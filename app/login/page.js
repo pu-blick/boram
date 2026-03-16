@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     signInWithEmailAndPassword,
@@ -9,19 +9,39 @@ import {
     updateProfile
 } from 'firebase/auth';
 import { auth, googleProvider, registerUser } from '../../lib/firebase';
+import { useAuth } from '../../components/AuthProvider';
 
 export default function LoginPage() {
+    const { user, loading: authLoading } = useAuth();
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [failCount, setFailCount] = useState(0);
+    const [lockUntil, setLockUntil] = useState(null);
     const router = useRouter();
+
+    // AuthProvider가 유저를 감지하면 자동으로 메인 페이지로 이동
+    useEffect(() => {
+        if (!authLoading && user) {
+            router.push('/');
+        }
+    }, [user, authLoading, router]);
+
+    const isLocked = lockUntil && Date.now() < lockUntil;
 
     async function handleEmailAuth(e) {
         e.preventDefault();
         setError('');
+
+        if (isLocked) {
+            const remaining = Math.ceil((lockUntil - Date.now()) / 1000);
+            setError(`로그인 시도가 제한되었습니다. ${remaining}초 후 다시 시도해주세요.`);
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -34,8 +54,20 @@ export default function LoginPage() {
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
-            router.push('/');
+            setFailCount(0);
+            setLockUntil(null);
         } catch (err) {
+            if (!isSignUp) {
+                const newCount = failCount + 1;
+                setFailCount(newCount);
+                if (newCount >= 5) {
+                    setLockUntil(Date.now() + 30000);
+                    setFailCount(0);
+                    setError('5회 연속 실패하여 30초간 로그인이 제한됩니다.');
+                    setLoading(false);
+                    return;
+                }
+            }
             if (err.code === 'auth/email-already-in-use') {
                 setError('이미 등록된 이메일입니다.');
             } else if (err.code === 'auth/weak-password') {
@@ -61,7 +93,6 @@ export default function LoginPage() {
                 result.user.email,
                 result.user.displayName
             );
-            router.push('/');
         } catch (err) {
             if (err.code !== 'auth/popup-closed-by-user') {
                 setError('구글 로그인에 실패했습니다.');
@@ -74,9 +105,9 @@ export default function LoginPage() {
         <div className="login-page">
             <div className="login-card">
                 <div className="login-logo">
-                    <h1>BORAM</h1>
+                    <h1>EduFlow</h1>
                 </div>
-                <p className="login-subtitle">보람고등학교 2학년부</p>
+                <p className="login-subtitle">에듀플로우</p>
 
                 {error && <div className="login-error">{error}</div>}
 
@@ -109,9 +140,9 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         className="login-btn login-btn-primary"
-                        disabled={loading}
+                        disabled={loading || isLocked}
                     >
-                        {loading ? '처리 중...' : (isSignUp ? '회원가입' : '로그인')}
+                        {loading ? '처리 중...' : isLocked ? '잠금 중...' : (isSignUp ? '회원가입' : '로그인')}
                     </button>
                 </form>
 

@@ -4,14 +4,6 @@
     box-sizing: border-box;
 }
 
-/* Smooth page appearance */
-body {
-    animation: fadeIn 0.2s ease-in;
-}
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
 
 :root {
     --primary: #1a2a4a;
@@ -397,6 +389,115 @@ body {
     width: 18px;
     height: 18px;
 }
+
+/* ===== Calendar ===== */
+.calendar-section {
+    background: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.cal-title {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.cal-nav {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.cal-nav:hover {
+    background: var(--bg);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.cal-dayname {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 6px 0;
+}
+
+.cal-dayname.sun { color: #ef4444; }
+.cal-dayname.sat { color: #3b82f6; }
+
+.cal-cell {
+    text-align: center;
+    padding: 4px 2px;
+    border-radius: 8px;
+    position: relative;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cal-cell.today .cal-date {
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cal-cell.sun .cal-date { color: #ef4444; }
+.cal-cell.sat .cal-date { color: #3b82f6; }
+.cal-cell.today .cal-date { color: white; }
+
+.cal-date {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.cal-dot {
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin: 3px auto 0;
+}
+
+.cal-schedule-text {
+    font-size: 9px;
+    line-height: 1.3;
+    color: var(--accent);
+    margin-top: 2px;
+    word-break: break-all;
+    white-space: pre-line;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
 
 @media (max-width: 600px) {
     .login-card {
