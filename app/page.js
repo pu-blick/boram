@@ -111,7 +111,7 @@ function MainSite({ role }) {
                     <li><a href="https://www.notion.so/2ffeaefe31828034a444d95d990c6561" target="_blank"><span className="material-symbols-rounded">calendar_month</span> 학사일정</a></li>
                     <li><a href="https://www.notion.so/306eaefe3182802cb920fd4ad04cc492" target="_blank"><span className="material-symbols-rounded">checklist</span> 창체일정</a></li>
                     <li><a href="https://www.notion.so/2026-2-2ffeaefe318280c7bf90d1dee06f5f2f" target="_blank"><span className="material-symbols-rounded">groups</span> NOTION</a></li>
-                    <li><a href="https://www.notion.so/305eaefe318280aab667e41088ac32af" target="_blank"><span className="material-symbols-rounded">gavel</span> 규정모음</a></li>
+                    <li><a href="https://www.notion.so/305eaefe318280aab667e41088ac32af" target="_blank"><span className="material-symbols-rounded">school</span> 입시컨설팅</a></li>
                     <li><a href="#"><span className="material-symbols-rounded">directions_bus</span> 수학여행</a></li>
                     {role === 'admin' && (
                         <li><a href="/admin"><span className="material-symbols-rounded">admin_panel_settings</span> 관리자</a></li>
@@ -128,7 +128,7 @@ function MainSite({ role }) {
             <section className="hero">
                 <div className="hero-overlay"></div>
                 <div className="hero-content">
-                    <h1>EduFlow</h1>
+                    <h1 style={{ fontFamily: 'Pretendard, sans-serif', fontWeight: 800, letterSpacing: '-0.5px' }}>보람고 2학년부</h1>
                 </div>
             </section>
 
@@ -149,8 +149,8 @@ function MainSite({ role }) {
                             <span className="card-label">NOTION</span>
                         </a>
                         <a href="https://www.notion.so/305eaefe318280aab667e41088ac32af" target="_blank" className="card">
-                            <div className="card-thumb"><img src="/규정모음.jpeg" alt="규정모음" /></div>
-                            <span className="card-label">규정모음</span>
+                            <div className="card-thumb"><img src="/규정모음_2.png" alt="입시컨설팅" /></div>
+                            <span className="card-label">입시컨설팅</span>
                         </a>
                         <a href="#" className="card">
                             <div className="card-thumb"><img src="/수학여행.jpeg" alt="수학여행" /></div>
@@ -166,66 +166,155 @@ function MainSite({ role }) {
                     <a href="/seating" className="circle-btn">
                         <img src="/CLASS HELP.png" alt="CLASS HELP" />
                     </a>
-                    <a href="https://student-discipline-manager.netlify.app" target="_blank" className="circle-btn">
+                    <a href="/discipline" className="circle-btn">
                         <img src="/공동체 관리대장.png" alt="공동체 관리대장" />
+                    </a>
+                    <a href="/idsearch" className="circle-btn">
+                        <img src="/id.png" alt="ID" />
                     </a>
                 </section>
 
+                <WeeklySchedule />
+
                 <CalendarSection />
 
-                <section className="memo-section">
-                    <div className="memo-header">
-                        <div className="memo-title">
-                            <span className="material-symbols-rounded">edit_note</span>
-                            <h2>MEMO</h2>
-                        </div>
-                        <div className="alarm-ticker-header" id="alarmTickerHeader"></div>
-                    </div>
-
-                    <div className="postit">
-                        <div className="postit-toolbar" onMouseDown={(e) => e.preventDefault()}>
-                            <button className="postit-tool" onClick={() => window.insertCheckbox?.()} title="체크박스">
-                                <span className="material-symbols-rounded">check_box</span>
-                            </button>
-                            <button className="postit-tool" onClick={() => window.toggleBold?.()} title="진하게">
-                                <span className="material-symbols-rounded">format_bold</span>
-                            </button>
-                            <div className="color-picker-wrap">
-                                <button className="postit-tool" onClick={() => window.toggleColorPicker?.()} title="글자 색상">
-                                    <span className="material-symbols-rounded">palette</span>
-                                </button>
-                                <div className="color-picker-popup" id="colorPicker" onMouseDown={(e) => e.preventDefault()}>
-                                    <button className="color-dot" style={{background:'#1a1a2e'}} onClick={() => window.applyColor?.('#1a1a2e')}></button>
-                                    <button className="color-dot" style={{background:'#ef4444'}} onClick={() => window.applyColor?.('#ef4444')}></button>
-                                    <button className="color-dot" style={{background:'#f59e0b'}} onClick={() => window.applyColor?.('#f59e0b')}></button>
-                                    <button className="color-dot" style={{background:'#22c55e'}} onClick={() => window.applyColor?.('#22c55e')}></button>
-                                    <button className="color-dot" style={{background:'#3b82f6'}} onClick={() => window.applyColor?.('#3b82f6')}></button>
-                                    <button className="color-dot" style={{background:'#a855f7'}} onClick={() => window.applyColor?.('#a855f7')}></button>
-                                    <button className="color-dot" style={{background:'#ec4899'}} onClick={() => window.applyColor?.('#ec4899')}></button>
-                                </div>
-                            </div>
-                            <button className="postit-new-btn" onClick={() => window.newMemo?.()}>NEW</button>
-                        </div>
-                        <div className="postit-save-bar">
-                            <input type="text" className="postit-title-input" id="memoTitleInput" placeholder="제목을 입력하세요" />
-                            <button className="memo-save-btn" onClick={() => window.saveAsMemo?.()}>저장</button>
-                        </div>
-                        <div className="postit-body" id="memoPad" contentEditable="true" data-placeholder="자유롭게 메모하세요..." suppressContentEditableWarning={true}></div>
-                    </div>
-
-                    <div className="memo-search-bar">
-                        <span className="material-symbols-rounded memo-search-icon">search</span>
-                        <input type="text" id="memoSearch" placeholder="메모 검색..." onInput={() => window.searchMemos?.()} />
-                    </div>
-
-                    <div className="saved-memos" id="savedMemos"></div>
-                </section>
             </main>
 
             <footer className="footer">
                 <p>EduFlow</p>
             </footer>
         </>
+    );
+}
+
+const SCHEDULE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/11v6OaMfVEOGOhNYDwpPX8dMw94lek7iX_A1SceyRHkc/export?format=csv&gid=1333092882';
+
+function parseCSV(text) {
+    const lines = text.split('\n');
+    const rows = [];
+    for (const line of lines) {
+        const cells = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') { inQuotes = !inQuotes; }
+            else if (ch === ',' && !inQuotes) { cells.push(current.trim()); current = ''; }
+            else { current += ch; }
+        }
+        cells.push(current.trim());
+        rows.push(cells);
+    }
+    return rows;
+}
+
+function getWeekDates() {
+    const today = new Date();
+    const day = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+    const dates = [];
+    for (let i = 0; i < 5; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(d);
+    }
+    return dates;
+}
+
+function matchDate(cellText, targetMonth, targetDay) {
+    if (!cellText) return false;
+    const m1 = cellText.match(/(\d{1,2})월\s*(\d{1,2})일/);
+    if (m1 && parseInt(m1[1]) === targetMonth && parseInt(m1[2]) === targetDay) return true;
+    const m2 = cellText.match(/(\d{1,2})월\s*(\d{1,2})일?\s*~\s*(\d{1,2})일/);
+    if (m2) {
+        const mon = parseInt(m2[1]);
+        const from = parseInt(m2[2]);
+        const to = parseInt(m2[3]);
+        if (mon === targetMonth && targetDay >= from && targetDay <= to) return true;
+    }
+    const m3 = cellText.match(/(\d{1,2})월(\d{1,2})일?\s*~\s*(\d{1,2})일/);
+    if (m3) {
+        const mon = parseInt(m3[1]);
+        const from = parseInt(m3[2]);
+        const to = parseInt(m3[3]);
+        if (mon === targetMonth && targetDay >= from && targetDay <= to) return true;
+    }
+    return false;
+}
+
+function WeeklySchedule() {
+    const [weekData, setWeekData] = useState({});
+    const [loaded, setLoaded] = useState(false);
+    const weekDates = getWeekDates();
+    const dayLabels = ['월', '화', '수', '목', '금'];
+
+    useEffect(() => {
+        fetch(SCHEDULE_SHEET_URL)
+            .then(r => r.text())
+            .then(text => {
+                const rows = parseCSV(text);
+                const result = {};
+                let lastDate = '';
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || row.length < 3) continue;
+                    if (row[0]) lastDate = row[0];
+                    const event = row[5];
+                    if (!event) continue;
+
+                    for (let d = 0; d < 5; d++) {
+                        const date = weekDates[d];
+                        const month = date.getMonth() + 1;
+                        const day = date.getDate();
+                        if (matchDate(lastDate, month, day)) {
+                            if (!result[d]) result[d] = [];
+                            const period = row[1] || '';
+                            result[d].push(period ? `${period}교시 ${event}` : event);
+                        }
+                    }
+                }
+                setWeekData(result);
+                setLoaded(true);
+            })
+            .catch(() => setLoaded(true));
+    }, []);
+
+    return (
+        <section style={{ background: 'white', borderRadius: 'var(--radius)', padding: '20px', boxShadow: 'var(--shadow-sm)', marginTop: 24 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Pretendard, sans-serif' }}>
+                <span className="material-symbols-rounded" style={{ fontSize: 20, color: 'var(--accent)' }}>date_range</span>
+                한주의 일정
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                {dayLabels.map((label, i) => {
+                    const date = weekDates[i];
+                    const isToday = date.toDateString() === new Date().toDateString();
+                    const events = weekData[i] || [];
+                    return (
+                        <div key={i} style={{
+                            background: isToday ? '#eff6ff' : '#f8fafc',
+                            borderRadius: 10,
+                            padding: '10px 8px',
+                            minHeight: 80,
+                            border: isToday ? '2px solid #3b82f6' : '1px solid #f1f5f9',
+                            transition: 'all 0.2s'
+                        }}>
+                            <div style={{ textAlign: 'center', marginBottom: 6 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: isToday ? '#3b82f6' : '#94a3b8' }}>{label}</div>
+                                <div style={{ fontSize: 14, fontWeight: isToday ? 800 : 600, color: isToday ? '#1e40af' : '#475569' }}>{date.getDate()}</div>
+                            </div>
+                            {events.length > 0 ? events.map((e, j) => (
+                                <div key={j} style={{ fontSize: 9, color: '#059669', lineHeight: 1.3, marginBottom: 3, wordBreak: 'keep-all' }}>{e}</div>
+                            )) : (
+                                <div style={{ fontSize: 9, color: '#cbd5e1', textAlign: 'center', marginTop: 8 }}>-</div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </section>
     );
 }
 

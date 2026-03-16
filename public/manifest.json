@@ -1,7 +1,7 @@
 {
-    "name": "에듀플로우 EduFlow",
-    "short_name": "EduFlow",
-    "description": "에듀플로우 - 학급 운영 서비스",
+    "name": "보람고등학교 2학년부",
+    "short_name": "보람고",
+    "description": "보람고등학교 2학년부 홈페이지",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#f0f2f5",

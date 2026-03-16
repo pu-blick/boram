@@ -4,17 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ref, onValue } from 'firebase/database';
 import { useAuth } from '../../components/AuthProvider';
-import { db, setUserRole, getSchedules, setSchedule, removeSchedule } from '../../lib/firebase';
+import { db, setUserRole, getSchedules, setSchedule } from '../../lib/firebase';
 
 export default function AdminPage() {
     const { user, role, loading } = useAuth();
     const [users, setUsers] = useState([]);
-    const [activeTab, setActiveTab] = useState('users');
-    const [schedYear, setSchedYear] = useState(new Date().getFullYear());
-    const [schedMonth, setSchedMonth] = useState(new Date().getMonth() + 1);
-    const [schedules, setSchedulesState] = useState({});
-    const [editDay, setEditDay] = useState('');
-    const [editContent, setEditContent] = useState('');
     const router = useRouter();
 
     useEffect(() => {
@@ -44,18 +38,6 @@ export default function AdminPage() {
         }
     }, [user, role, loading, router]);
 
-    // Load schedules when year/month changes
-    useEffect(() => {
-        if (user && role === 'admin') {
-            loadSchedules();
-        }
-    }, [user, role, schedYear, schedMonth]);
-
-    async function loadSchedules() {
-        const data = await getSchedules(schedYear, schedMonth);
-        setSchedulesState(data);
-    }
-
     if (loading) {
         return <div className="loading-page"><div className="spinner"></div></div>;
     }
@@ -78,166 +60,151 @@ export default function AdminPage() {
         }
     }
 
-    async function handleAddSchedule() {
-        const day = parseInt(editDay);
-        if (!day || day < 1 || day > 31 || !editContent.trim()) return;
-        await setSchedule(schedYear, schedMonth, day, editContent.trim());
-        setEditDay('');
-        setEditContent('');
-        await loadSchedules();
-    }
-
-    function handleEditSchedule(day, content) {
-        setEditDay(String(day));
-        setEditContent(content);
-    }
-
-    async function handleDeleteSchedule(day) {
-        if (confirm(`${schedMonth}월 ${day}일 일정을 삭제하시겠습니까?`)) {
-            await removeSchedule(schedYear, schedMonth, day);
-            await loadSchedules();
-        }
-    }
-
-    const daysInMonth = new Date(schedYear, schedMonth, 0).getDate();
-
     return (
         <div className="admin-page">
             <div className="admin-header">
-                <h1>관리자</h1>
+                <h1>사용자 관리</h1>
                 <a href="/" className="admin-back">홈으로</a>
             </div>
 
-            {/* Tab buttons */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-                <button
-                    onClick={() => setActiveTab('users')}
-                    style={{
-                        flex: 1, padding: '10px', border: 'none', borderRadius: 8,
-                        fontFamily: 'Pretendard, sans-serif', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                        background: activeTab === 'users' ? 'var(--accent)' : 'var(--bg)',
-                        color: activeTab === 'users' ? 'white' : 'var(--text-secondary)',
-                    }}
-                >사용자 관리</button>
-                <button
-                    onClick={() => setActiveTab('schedule')}
-                    style={{
-                        flex: 1, padding: '10px', border: 'none', borderRadius: 8,
-                        fontFamily: 'Pretendard, sans-serif', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                        background: activeTab === 'schedule' ? 'var(--accent)' : 'var(--bg)',
-                        color: activeTab === 'schedule' ? 'white' : 'var(--text-secondary)',
-                    }}
-                >일정 관리</button>
+            <ScheduleManager />
+
+            <div className="admin-header" style={{ marginTop: 40, marginBottom: 16 }}>
+                <h1>사용자 관리</h1>
+            </div>
+            <div className="user-list">
+                {users.map((u) => (
+                    <div className="user-card" key={u.uid}>
+                        <div className="user-info">
+                            <span className="user-email">
+                                {u.displayName || u.email}
+                                {u.displayName && <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 12, marginLeft: 8 }}>{u.email}</span>}
+                            </span>
+                            <span className="user-date">
+                                가입: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'}
+                            </span>
+                        </div>
+                        <div className="user-actions">
+                            {u.role === 'pending' && (
+                                <>
+                                    <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
+                                    <button className="btn-reject" onClick={() => handleReject(u.uid)}>거부</button>
+                                </>
+                            )}
+                            {u.role === 'approved' && (
+                                <>
+                                    <span className="user-role-badge badge-approved">승인됨</span>
+                                    <button className="btn-approve" onClick={() => handleSetAdmin(u.uid)} style={{ background: '#3b82f6', fontSize: 11 }}>관리자 지정</button>
+                                </>
+                            )}
+                            {u.role === 'admin' && (
+                                <span className="user-role-badge badge-admin">관리자</span>
+                            )}
+                            {u.role === 'rejected' && (
+                                <>
+                                    <span className="user-role-badge" style={{ background: '#fee2e2', color: '#dc2626' }}>거부됨</span>
+                                    <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                ))}
+
+                {users.length === 0 && (
+                    <p style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>등록된 사용자가 없습니다.</p>
+                )}
             </div>
 
-            {/* Users tab */}
-            {activeTab === 'users' && (
-                <div className="user-list">
-                    {users.map((u) => (
-                        <div className="user-card" key={u.uid}>
-                            <div className="user-info">
-                                <span className="user-email">
-                                    {u.displayName || u.email}
-                                    {u.displayName && <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 12, marginLeft: 8 }}>{u.email}</span>}
-                                </span>
-                                <span className="user-date">
-                                    가입: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('ko-KR') : '-'}
-                                </span>
-                            </div>
-                            <div className="user-actions">
-                                {u.role === 'pending' && (
-                                    <>
-                                        <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
-                                        <button className="btn-reject" onClick={() => handleReject(u.uid)}>거부</button>
-                                    </>
-                                )}
-                                {u.role === 'approved' && (
-                                    <>
-                                        <span className="user-role-badge badge-approved">승인됨</span>
-                                        <button className="btn-approve" onClick={() => handleSetAdmin(u.uid)} style={{ background: '#3b82f6', fontSize: 11 }}>관리자 지정</button>
-                                    </>
-                                )}
-                                {u.role === 'admin' && (
-                                    <span className="user-role-badge badge-admin">관리자</span>
-                                )}
-                                {u.role === 'rejected' && (
-                                    <>
-                                        <span className="user-role-badge" style={{ background: '#fee2e2', color: '#dc2626' }}>거부됨</span>
-                                        <button className="btn-approve" onClick={() => handleApprove(u.uid)}>승인</button>
-                                    </>
-                                )}
-                            </div>
+        </div>
+    );
+}
+
+function ScheduleManager() {
+    const today = new Date();
+    const [year, setYear] = useState(today.getFullYear());
+    const [month, setMonth] = useState(today.getMonth() + 1);
+    const [schedules, setSchedules] = useState({});
+    const [editDay, setEditDay] = useState(null);
+    const [editText, setEditText] = useState('');
+
+    useEffect(() => {
+        getSchedules(year, month).then(setSchedules);
+    }, [year, month]);
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
+
+    const prevMonth = () => {
+        if (month === 1) { setMonth(12); setYear(year - 1); }
+        else setMonth(month - 1);
+    };
+    const nextMonth = () => {
+        if (month === 12) { setMonth(1); setYear(year + 1); }
+        else setMonth(month + 1);
+    };
+
+    const handleDayClick = (d) => {
+        setEditDay(d);
+        setEditText(schedules[d] || '');
+    };
+
+    const handleSave = async () => {
+        if (editDay === null) return;
+        await setSchedule(year, month, editDay, editText.trim() || null);
+        const updated = await getSchedules(year, month);
+        setSchedules(updated);
+        setEditDay(null);
+        setEditText('');
+    };
+
+    return (
+        <div style={{ marginTop: 32 }}>
+            <div className="admin-header" style={{ marginBottom: 16 }}>
+                <h1>달력 일정 관리</h1>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <button onClick={prevMonth} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>◀</button>
+                <span style={{ fontWeight: 700, fontSize: 18 }}>{year}년 {month}월</span>
+                <button onClick={nextMonth} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>▶</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 16 }}>
+                {dayNames.map((d, i) => (
+                    <div key={d} style={{ textAlign: 'center', fontSize: 12, fontWeight: 700, padding: '6px 0', color: i === 0 ? '#ef4444' : i === 6 ? '#3b82f6' : '#64748b' }}>{d}</div>
+                ))}
+                {Array.from({ length: firstDayOfWeek }, (_, i) => (
+                    <div key={`e-${i}`} />
+                ))}
+                {Array.from({ length: daysInMonth }, (_, i) => {
+                    const d = i + 1;
+                    const hasEvent = !!schedules[d];
+                    const isEditing = editDay === d;
+                    return (
+                        <div key={d} onClick={() => handleDayClick(d)}
+                            style={{ minHeight: 48, padding: '4px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 12, textAlign: 'center', border: isEditing ? '2px solid #3b82f6' : '1px solid #f1f5f9', background: isEditing ? '#eff6ff' : hasEvent ? '#f0fdf4' : '#fff', transition: 'all 0.15s' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 2 }}>{d}</div>
+                            {hasEvent && <div style={{ fontSize: 9, color: '#2563eb', fontWeight: 600, lineHeight: 1.2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{schedules[d]}</div>}
                         </div>
-                    ))}
-                    {users.length === 0 && (
-                        <p style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>등록된 사용자가 없습니다.</p>
-                    )}
-                </div>
-            )}
+                    );
+                })}
+            </div>
 
-            {/* Schedule tab */}
-            {activeTab === 'schedule' && (
-                <div>
-                    {/* Month selector */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
-                        <button onClick={() => {
-                            if (schedMonth === 1) { setSchedMonth(12); setSchedYear(schedYear - 1); }
-                            else setSchedMonth(schedMonth - 1);
-                        }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text)' }}>◀</button>
-                        <span style={{ fontSize: 18, fontWeight: 700 }}>{schedYear}년 {schedMonth}월</span>
-                        <button onClick={() => {
-                            if (schedMonth === 12) { setSchedMonth(1); setSchedYear(schedYear + 1); }
-                            else setSchedMonth(schedMonth + 1);
-                        }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text)' }}>▶</button>
-                    </div>
-
-                    {/* Add schedule form */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <input
-                                type="number"
-                                min="1"
-                                max={daysInMonth}
-                                value={editDay}
-                                onChange={(e) => setEditDay(e.target.value)}
-                                placeholder="일"
-                                style={{ width: 60, padding: '10px', border: '1.5px solid var(--border)', borderRadius: 8, fontFamily: 'Pretendard, sans-serif', fontSize: 14, textAlign: 'center' }}
-                            />
-                            <button
-                                onClick={handleAddSchedule}
-                                style={{ padding: '10px 16px', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 8, fontFamily: 'Pretendard, sans-serif', fontSize: 14, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                            >추가</button>
-                        </div>
-                        <textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            placeholder="일정 내용을 입력하세요 (여러 줄 가능)"
-                            rows={3}
-                            style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: 8, fontFamily: 'Pretendard, sans-serif', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }}
-                        />
-                    </div>
-
-                    {/* Schedule list */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {Object.entries(schedules)
-                            .sort(([a], [b]) => Number(a) - Number(b))
-                            .map(([day, content]) => (
-                                <div key={day} style={{ display: 'flex', alignItems: 'center', background: 'white', borderRadius: 10, padding: '12px 16px', boxShadow: 'var(--shadow-sm)' }}>
-                                    <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--accent)', minWidth: 40 }}>{day}일</span>
-                                    <span style={{ flex: 1, fontSize: 14, whiteSpace: 'pre-line' }}>{content}</span>
-                                    <button
-                                        onClick={() => handleEditSchedule(day, content)}
-                                        style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}
-                                    >✎</button>
-                                    <button
-                                        onClick={() => handleDeleteSchedule(day)}
-                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 18, padding: '0 4px' }}
-                                    >×</button>
-                                </div>
-                            ))}
-                        {Object.keys(schedules).length === 0 && (
-                            <p style={{ textAlign: 'center', color: '#94a3b8', padding: 40 }}>이 달에 등록된 일정이 없습니다.</p>
-                        )}
+            {editDay !== null && (
+                <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontWeight: 700, marginBottom: 8, fontSize: 14 }}>{month}월 {editDay}일 일정</p>
+                    <input
+                        type="text"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        placeholder="일정을 입력하세요 (비우면 삭제)"
+                        autoFocus
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid #cbd5e0', borderRadius: 8, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={handleSave} style={{ flex: 1, padding: '10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>저장</button>
+                        <button onClick={() => setEditDay(null)} style={{ flex: 1, padding: '10px', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>취소</button>
                     </div>
                 </div>
             )}

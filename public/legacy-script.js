@@ -4,41 +4,29 @@
     // Check if Firebase is already initialized
     if (firebase.apps && firebase.apps.length > 0) {
         // Already initialized, just get references
-    } else if (window.__FIREBASE_CONFIG__) {
-        firebase.initializeApp(window.__FIREBASE_CONFIG__);
+    } else {
+        const firebaseConfig = {
+            apiKey: "AIzaSyAqmFSAARsCeurZvV1NmVnZlqc3Y4q5bBQ",
+            authDomain: "boram-2848a.firebaseapp.com",
+            databaseURL: "https://boram-2848a-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "boram-2848a",
+            storageBucket: "boram-2848a.firebasestorage.app",
+            messagingSenderId: "14057140893",
+            appId: "1:14057140893:web:a1354129dae7bb0d575a74"
+        };
+        firebase.initializeApp(firebaseConfig);
     }
 
     const db = firebase.database();
-    const currentUser = firebase.auth().currentUser;
-    const uid = currentUser ? currentUser.uid : 'anonymous';
-    const draftRef = db.ref('userdata/' + uid + '/draft');
-    const memosRef = db.ref('userdata/' + uid + '/memos');
-    const pinnedRef = db.ref('userdata/' + uid + '/pinned');
+    const draftRef = db.ref('draft');
+    const memosRef = db.ref('memos');
+    const pinnedRef = db.ref('pinned');
 
     let savedRange = null;
     let saveTimer = null;
     let pinnedMemoDate = null;
     let wasSwiping = false;
     let cachedMemos = [];
-
-    // Sanitize HTML to prevent XSS attacks
-    function sanitizeHtml(html) {
-        if (!html) return '';
-        var temp = document.createElement('div');
-        temp.innerHTML = html;
-        // Remove dangerous elements
-        var dangerous = temp.querySelectorAll('script,iframe,object,embed,form,link,style,meta,base,svg');
-        dangerous.forEach(function(el) { el.remove(); });
-        // Remove event handler attributes from all elements
-        temp.querySelectorAll('*').forEach(function(el) {
-            Array.from(el.attributes).forEach(function(attr) {
-                if (attr.name.startsWith('on') || attr.value.trim().toLowerCase().startsWith('javascript:')) {
-                    el.removeAttribute(attr.name);
-                }
-            });
-        });
-        return temp.innerHTML;
-    }
 
     function saveSelection() {
         const sel = window.getSelection();
@@ -119,7 +107,7 @@
             if (pinned && pinned.content) {
                 skipFirstDraft = true;
                 pinnedMemoDate = pinned.date || null;
-                pad.innerHTML = sanitizeHtml(pinned.content);
+                pad.innerHTML = pinned.content;
                 const titleInput = document.getElementById('memoTitleInput');
                 if (titleInput) titleInput.value = pinned.title || '';
                 restoreCheckboxState(pad);
@@ -129,7 +117,7 @@
                 if (document.activeElement === pad) return;
                 if (skipFirstDraft) { skipFirstDraft = false; return; }
                 if (content !== null) {
-                    pad.innerHTML = sanitizeHtml(content);
+                    pad.innerHTML = content;
                     restoreCheckboxState(pad);
                 }
             });
@@ -360,7 +348,7 @@
         if (!memo) return;
         const pad = document.getElementById('memoPad');
         const titleInput = document.getElementById('memoTitleInput');
-        if (pad) pad.innerHTML = sanitizeHtml(memo.content);
+        if (pad) pad.innerHTML = memo.content;
         if (titleInput) titleInput.value = memo.title;
         draftRef.set(memo.content);
         const postit = document.querySelector('.postit');

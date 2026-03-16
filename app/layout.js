@@ -32,33 +32,6 @@ export default function RootLayout({ children }) {
                 <link rel="stylesheet" href="/legacy-style.css" />
             </head>
             <body>
-                <div id="splash" style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 99999,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '16px',
-                    background: '#062117',
-                    transition: 'opacity 0.4s',
-                }}>
-                    <span style={{
-                        fontFamily: "'Josefin Sans', sans-serif",
-                        fontSize: '40px',
-                        fontWeight: 300,
-                        letterSpacing: '10px',
-                        color: 'white',
-                    }}>EduFlow</span>
-                    <span style={{
-                        fontFamily: "Pretendard, sans-serif",
-                        fontSize: '13px',
-                        fontWeight: 300,
-                        color: 'rgba(255,255,255,0.5)',
-                        letterSpacing: '2px',
-                    }}>학교가는중....</span>
-                </div>
                 <AuthProvider>
                     {children}
                 </AuthProvider>
