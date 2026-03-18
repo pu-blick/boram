@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../components/AuthProvider';
 import { auth, getSchedules } from '../lib/firebase';
+import { fetchAllStudentData } from '../lib/discipline';
 
 export default function HomePage() {
     const { user, role, loading } = useAuth();
@@ -51,7 +52,97 @@ export default function HomePage() {
     return <MainSite role={role} />;
 }
 
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzvopMSRlb50SvL2Jcj1ltc3OjeogtO9LVTfVDni0EYVHkJsX6--u45zmPSkLocmY6_fw/exec';
+
+const VIOLATION_LIST = [
+    '수업 시간 미준수', '수업 중 음식물 섭취', '수업 중 면학 분위기 저해',
+    '담임교사 지시 위반', '기타 일반 예절 위반',
+    '[즉시] 미인정 지각', '[즉시] 미인정 결과', '[즉시] 미인정 조퇴',
+    '[즉시] 미인정 외출', '[즉시] 미인정 결석', '[즉시] 수업시간 전자기기 무단 사용',
+    '[2회] 두발 및 용의·복장 규정 위반', '[2회] 실내외화 혼용', '[2회] 교내 소란 및 비속어 사용',
+    '교내 행사 무단 불참', '교외 단체 활동/행사 무단 불참', '[2회] 청소 활동 불성실',
+    '규정된 출입문 미사용', '월담 행위', '[즉시] 사행성 오락',
+    '음란물 반입/시청/소지', '출입 금지 구역 무단 입장', '불건전한 이성교제',
+    '쓰레기 무단 투기', '[즉시] 고의적 공공기물 훼손', '학생 신분에 어긋난 행동',
+    '식당 질서 위반(무단식사 등)', '복장 임의 변형', '수업 중 수면',
+];
+
+const RS = {
+    modal: { position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)' },
+    modalBox: { background: 'white', borderRadius: 24, width: '100%', maxWidth: 400, maxHeight: '85vh', padding: 24, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+    label: { fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 4 },
+    value: { fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 16 },
+    btn: { width: '100%', padding: 14, borderRadius: 16, color: 'white', fontSize: 15, fontWeight: 900, border: 'none', cursor: 'pointer' },
+};
+
 function MainSite({ role }) {
+    const [showRecordModal, setShowRecordModal] = useState(false);
+    const [recordStep, setRecordStep] = useState(1);
+    const [recordStudent, setRecordStudent] = useState(null);
+    const [recordDate, setRecordDate] = useState('');
+    const [recordViolation, setRecordViolation] = useState('');
+    const [recordCustom, setRecordCustom] = useState('');
+    const [recordSaving, setRecordSaving] = useState(false);
+    const [recordResult, setRecordResult] = useState(null);
+    const [studentSearch, setStudentSearch] = useState('');
+    const [allStudents, setAllStudents] = useState([]);
+    const [studentsLoading, setStudentsLoading] = useState(false);
+    const [selectedClassFilter, setSelectedClassFilter] = useState(null);
+    const [fabOffset, setFabOffset] = useState(0);
+
+    useEffect(() => {
+        let timeout;
+        const handleScroll = () => {
+            setFabOffset(30);
+            clearTimeout(timeout);
+            timeout = setTimeout(() => setFabOffset(0), 150);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => { window.removeEventListener('scroll', handleScroll); clearTimeout(timeout); };
+    }, []);
+
+    const openRecordModal = async () => {
+        const today = new Date();
+        setRecordDate(`${today.getMonth() + 1}/${today.getDate()}`);
+        setRecordStep(1);
+        setRecordStudent(null);
+        setRecordViolation('');
+        setRecordCustom('');
+        setRecordResult(null);
+        setStudentSearch('');
+        setSelectedClassFilter(null);
+        setShowRecordModal(true);
+        if (allStudents.length === 0) {
+            setStudentsLoading(true);
+            try {
+                const { allStudents: every } = await fetchAllStudentData(2);
+                setAllStudents(every);
+            } catch (e) { console.error(e); }
+            finally { setStudentsLoading(false); }
+        }
+    };
+
+    const handleRecordSubmit = async () => {
+        if (!recordStudent) return;
+        const violation = recordViolation === '__custom__' ? recordCustom : recordViolation;
+        if (!violation) return;
+        const content = `${recordDate} ${violation}`;
+        const classNum = recordStudent.class.replace(/[^0-9-]/g, '');
+        setRecordSaving(true);
+        setRecordResult(null);
+        try {
+            const res = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ sheetName: classNum, studentId: recordStudent.id, content })
+            });
+            const json = await res.json();
+            setRecordResult(json.success ? 'success' : 'error: ' + (json.error || '알 수 없는 오류'));
+        } catch (err) {
+            setRecordResult('error: ' + err.message);
+        } finally { setRecordSaving(false); }
+    };
+
     useEffect(() => {
         // Pass Firebase config to legacy script via window
         window.__FIREBASE_CONFIG__ = {
@@ -183,6 +274,152 @@ function MainSite({ role }) {
             <footer className="footer">
                 <p>EduFlow</p>
             </footer>
+
+            {/* 위반 기록 플로팅 버튼 */}
+            <button onClick={openRecordModal} style={{
+                position: 'fixed', bottom: '45%', right: 12, width: 52, height: 52,
+                borderRadius: 14, background: 'none', border: 'none', cursor: 'pointer', zIndex: 150,
+                padding: 0, overflow: 'hidden',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                transform: `translateY(${fabOffset}px)`,
+                transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            }}>
+                <img src="/c_ 1.jpeg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </button>
+
+            {/* 기록 모달 */}
+            {showRecordModal && (
+                <div style={RS.modal} onClick={() => setShowRecordModal(false)}>
+                    <div style={RS.modalBox} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#0f172a' }}>위반 기록</h3>
+                            <button onClick={() => setShowRecordModal(false)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
+                        </div>
+
+                        {recordResult === 'success' ? (
+                            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                                <div style={{ fontSize: 48, marginBottom: 16, color: '#10b981' }}>&#10003;</div>
+                                <p style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>기록 완료!</p>
+                                <p style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>{recordStudent?.name} ({recordStudent?.id})</p>
+                                <button onClick={() => { setRecordResult(null); setRecordStep(1); setRecordStudent(null); setRecordViolation(''); setRecordCustom(''); }}
+                                    style={{ ...RS.btn, marginTop: 20, background: '#10b981' }}>추가 기록</button>
+                                <button onClick={() => setShowRecordModal(false)}
+                                    style={{ ...RS.btn, marginTop: 8, background: '#64748b' }}>닫기</button>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+                                    {[1, 2, 3].map(s => (
+                                        <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: recordStep >= s ? '#e11d48' : '#e2e8f0' }}></div>
+                                    ))}
+                                </div>
+
+                                <div style={{ flex: 1, overflowY: 'auto' }}>
+                                    {recordStep === 1 && (
+                                        <div>
+                                            <div style={{ display: 'flex', gap: 4, marginBottom: 10, overflowX: 'auto', paddingBottom: 4 }}>
+                                                {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                                                    <button key={n} onClick={() => setSelectedClassFilter(selectedClassFilter === n ? null : n)}
+                                                        style={{
+                                                            flex: '0 0 auto', padding: '6px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                                                            border: selectedClassFilter === n ? 'none' : '1px solid #e2e8f0',
+                                                            background: selectedClassFilter === n ? '#0f172a' : 'white',
+                                                            color: selectedClassFilter === n ? 'white' : '#475569',
+                                                            cursor: 'pointer', whiteSpace: 'nowrap'
+                                                        }}>
+                                                        {n}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <p style={RS.label}>학생 선택</p>
+                                            <input type="text" placeholder="이름 또는 학번 검색..." value={studentSearch}
+                                                onChange={e => setStudentSearch(e.target.value)}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 14, marginBottom: 8, boxSizing: 'border-box' }} />
+                                            {studentsLoading ? (
+                                                <p style={{ textAlign: 'center', color: '#94a3b8', padding: 20, fontSize: 13 }}>학생 데이터 불러오는 중...</p>
+                                            ) : (
+                                                <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                                                    {allStudents.filter(s => {
+                                                        if (selectedClassFilter && s.class !== `2-${selectedClassFilter}반`) return false;
+                                                        if (studentSearch && !s.name.includes(studentSearch) && !s.id.includes(studentSearch)) return false;
+                                                        return true;
+                                                    }).map(s => (
+                                                        <button key={s.id} onClick={() => { setRecordStudent(s); setRecordStep(2); }}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', marginBottom: 4, textAlign: 'left' }}>
+                                                            <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#475569', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>{s.class}</span>
+                                                            <span style={{ fontWeight: 700, fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>{s.name}</span>
+                                                            <span style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>{s.id}</span>
+                                                        </button>
+                                                    ))}
+                                                    {allStudents.filter(s => {
+                                                        if (selectedClassFilter && s.class !== `2-${selectedClassFilter}반`) return false;
+                                                        if (studentSearch && !s.name.includes(studentSearch) && !s.id.includes(studentSearch)) return false;
+                                                        return true;
+                                                    }).length === 0 && !studentsLoading && (
+                                                        <p style={{ textAlign: 'center', color: '#94a3b8', padding: 20, fontSize: 13 }}>검색 결과가 없습니다</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {recordStep === 2 && (
+                                        <div>
+                                            <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: 10, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 13, fontWeight: 700 }}>{recordStudent?.class} {recordStudent?.name} ({recordStudent?.id})</span>
+                                                <button onClick={() => setRecordStep(1)} style={{ background: 'none', border: 'none', fontSize: 11, color: '#e11d48', fontWeight: 700, cursor: 'pointer' }}>변경</button>
+                                            </div>
+                                            <p style={RS.label}>날짜</p>
+                                            <input type="text" value={recordDate} onChange={e => setRecordDate(e.target.value)}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
+                                            <p style={RS.label}>위반내용 선택</p>
+                                            <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 8 }}>
+                                                {VIOLATION_LIST.map(v => (
+                                                    <button key={v} onClick={() => { setRecordViolation(v); setRecordStep(3); }}
+                                                        style={{ display: 'block', width: '100%', padding: '9px 12px', borderRadius: 8, border: recordViolation === v ? '2px solid #e11d48' : '1px solid #e2e8f0', background: recordViolation === v ? '#fef2f2' : 'white', cursor: 'pointer', marginBottom: 4, textAlign: 'left', fontSize: 13, fontWeight: recordViolation === v ? 700 : 500 }}>
+                                                        {v}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <p style={{ ...RS.label, marginTop: 8 }}>또는 직접 입력</p>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                <input type="text" placeholder="직접 입력..." value={recordCustom}
+                                                    onChange={e => { setRecordCustom(e.target.value); setRecordViolation('__custom__'); }}
+                                                    style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13, boxSizing: 'border-box' }} />
+                                                <button onClick={() => { if (recordCustom) setRecordStep(3); }}
+                                                    style={{ padding: '10px 16px', borderRadius: 10, background: '#0f172a', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>확인</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {recordStep === 3 && (
+                                        <div>
+                                            <p style={RS.label}>학생</p>
+                                            <p style={RS.value}>{recordStudent?.class} {recordStudent?.name} ({recordStudent?.id})</p>
+                                            <p style={RS.label}>날짜</p>
+                                            <p style={RS.value}>{recordDate}</p>
+                                            <p style={RS.label}>위반내용</p>
+                                            <p style={RS.value}>{recordViolation === '__custom__' ? recordCustom : recordViolation}</p>
+                                            <p style={RS.label}>시트에 입력될 값</p>
+                                            <p style={{ ...RS.value, background: '#f1f5f9', padding: '10px 14px', borderRadius: 10, fontSize: 14 }}>
+                                                {recordDate} {recordViolation === '__custom__' ? recordCustom : recordViolation}
+                                            </p>
+                                            {recordResult && recordResult.startsWith('error') && (
+                                                <p style={{ color: '#e11d48', fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{recordResult}</p>
+                                            )}
+                                            <button onClick={handleRecordSubmit} disabled={recordSaving}
+                                                style={{ ...RS.btn, background: recordSaving ? '#94a3b8' : '#e11d48', marginBottom: 8 }}>
+                                                {recordSaving ? '기록 중...' : '기록하기'}</button>
+                                            <button onClick={() => setRecordStep(2)}
+                                                style={{ ...RS.btn, background: '#64748b' }}>뒤로</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 }

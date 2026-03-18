@@ -9,6 +9,7 @@ const VIEW_ALL = 'ALL';
 const VIEW_WARNING = 'WARNING';
 const VIEW_COMMITTEE = 'COMMITTEE';
 
+
 const S = {
     page: { fontFamily: 'Pretendard, sans-serif', background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', minHeight: '100vh', paddingBottom: 80 },
     header: { background: 'rgba(15,23,42,0.9)', backdropFilter: 'blur(12px)', color: 'white', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 60 },
@@ -66,6 +67,7 @@ export default function DisciplinePage() {
     }, [user, authLoading, router]);
 
     const [students, setStudents] = useState([]);
+    const [allStudentsList, setAllStudentsList] = useState([]);
     const [loadedSheets, setLoadedSheets] = useState([]);
     const [viewMode, setViewMode] = useState(VIEW_ALL);
     const [loading, setLoading] = useState(false);
@@ -82,8 +84,9 @@ export default function DisciplinePage() {
         setSelectedGrade(grade);
         setSelectedClass(null);
         try {
-            const { students: data, loadedSheets: sheets } = await fetchAllStudentData(grade);
+            const { students: data, allStudents: every, loadedSheets: sheets } = await fetchAllStudentData(grade);
             setStudents(data);
+            setAllStudentsList(every);
             setLoadedSheets(sheets);
             if (sheets.length === 0) setError('NOT_FOUND');
             else if (data.length === 0) setError('DATA_EMPTY');
@@ -176,18 +179,18 @@ export default function DisciplinePage() {
                     {/* Class chips */}
                     {loadedSheets.length > 0 && (
                         <div style={S.glass}>
-                            <div style={S.chipRow}>
+                            <div style={{ ...S.chipRow, flexWrap: 'nowrap', gap: 4 }}>
                                 {loadedSheets.slice(0, 5).map(s => (
-                                    <button key={s} style={S.chip(selectedClass === s)} onClick={() => setSelectedClass(selectedClass === s ? null : s)}>
-                                        ✓ {s}
+                                    <button key={s} style={{ ...S.chip(selectedClass === s), flex: 1, minWidth: 0, padding: '6px 4px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => setSelectedClass(selectedClass === s ? null : s)}>
+                                        {s}
                                     </button>
                                 ))}
                             </div>
                             {loadedSheets.length > 5 && (
-                                <div style={{ ...S.chipRow, marginTop: 6 }}>
+                                <div style={{ ...S.chipRow, flexWrap: 'nowrap', gap: 4, marginTop: 6 }}>
                                     {loadedSheets.slice(5).map(s => (
-                                        <button key={s} style={S.chip(selectedClass === s)} onClick={() => setSelectedClass(selectedClass === s ? null : s)}>
-                                            ✓ {s}
+                                        <button key={s} style={{ ...S.chip(selectedClass === s), flex: 1, minWidth: 0, padding: '6px 4px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => setSelectedClass(selectedClass === s ? null : s)}>
+                                            {s}
                                         </button>
                                     ))}
                                 </div>
@@ -315,7 +318,7 @@ export default function DisciplinePage() {
                     </div>
                 )}
 
-                {/* FAB */}
+                {/* FAB - 엑셀 */}
                 <a href={`https://docs.google.com/spreadsheets/d/${SHEET_IDS[selectedGrade]}/edit`} target="_blank" rel="noreferrer" style={S.fab}>
                     <i className="fa-solid fa-file-excel"></i>
                 </a>
