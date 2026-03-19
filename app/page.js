@@ -49,10 +49,15 @@ export default function HomePage() {
     }
 
     // Approved or Admin - show the actual site
-    return <MainSite role={role} />;
+    return <MainSite role={role} user={user} />;
 }
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzvopMSRlb50SvL2Jcj1ltc3OjeogtO9LVTfVDni0EYVHkJsX6--u45zmPSkLocmY6_fw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmK27_RCgeQHOINSeec1hM-yrNcHP139QNYa7pGrEBDyL92vhfTGsOvqGH5zMntqiiDg/exec';
+
+// 이메일 → 교사/반 매핑 (classNum: null이면 학년부장, 전체 반)
+const TEACHER_MAP = {
+    'cih4682@gmail.com': { name: '최익현', classNum: null },
+};
 
 const VIOLATION_LIST = [
     '수업 시간 미준수', '수업 중 음식물 섭취', '수업 중 면학 분위기 저해',
@@ -75,7 +80,8 @@ const RS = {
     btn: { width: '100%', padding: 14, borderRadius: 16, color: 'white', fontSize: 15, fontWeight: 900, border: 'none', cursor: 'pointer' },
 };
 
-function MainSite({ role }) {
+function MainSite({ role, user }) {
+    const teacherInfo = user?.email ? TEACHER_MAP[user.email] : null;
     const [showRecordModal, setShowRecordModal] = useState(false);
     const [recordStep, setRecordStep] = useState(1);
     const [recordStudent, setRecordStudent] = useState(null);
@@ -110,7 +116,7 @@ function MainSite({ role }) {
         setRecordCustom('');
         setRecordResult(null);
         setStudentSearch('');
-        setSelectedClassFilter(null);
+        setSelectedClassFilter(teacherInfo?.classNum || null);
         setShowRecordModal(true);
         if (allStudents.length === 0) {
             setStudentsLoading(true);
@@ -128,15 +134,20 @@ function MainSite({ role }) {
         if (!violation) return;
         const content = `${recordDate} ${violation}`;
         const classNum = recordStudent.class.replace(/[^0-9-]/g, '');
+        const teacherName = teacherInfo?.name || '';
         setRecordSaving(true);
         setRecordResult(null);
         try {
+            // 1) 엑셀 기록 (Apps Script)
             const res = await fetch(APPS_SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ sheetName: classNum, studentId: recordStudent.id, content })
+                body: JSON.stringify({ sheetName: classNum, studentId: recordStudent.id, content, teacherName, violation, date: recordDate, studentName: recordStudent.name })
             });
             const json = await res.json();
+
+            // 2) 구글폼 응답 시트 기록은 Apps Script에서 처리
+
             setRecordResult(json.success ? 'success' : 'error: ' + (json.error || '알 수 없는 오류'));
         } catch (err) {
             setRecordResult('error: ' + err.message);
