@@ -4,6 +4,15 @@
     box-sizing: border-box;
 }
 
+/* 태블릿에서만 기록 FAB 버튼 크게 */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .record-fab {
+        width: 100px !important;
+        height: 100px !important;
+        border-radius: 24px !important;
+    }
+}
+
 /* Smooth page appearance */
 body {
     animation: fadeIn 0.2s ease-in;

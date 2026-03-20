@@ -276,6 +276,8 @@ function MainSite({ role, user }) {
                     </a>
                 </section>
 
+                <HelperSection />
+
                 <WeeklySchedule />
 
                 <CalendarSection />
@@ -287,7 +289,7 @@ function MainSite({ role, user }) {
             </footer>
 
             {/* 위반 기록 플로팅 버튼 */}
-            <button onClick={openRecordModal} style={{
+            <button className="record-fab" onClick={openRecordModal} style={{
                 position: 'fixed', bottom: '45%', right: 12, width: 52, height: 52,
                 borderRadius: 14, background: 'none', border: 'none', cursor: 'pointer', zIndex: 150,
                 padding: 0, overflow: 'hidden',
@@ -491,6 +493,98 @@ function matchDate(cellText, targetMonth, targetDay) {
     return false;
 }
 
+function HelperSection() {
+    const [open, setOpen] = useState(false);
+
+    const RECYCLE_START = new Date(2026, 2, 23); // 2026-03-23
+    const LUNCH_START = new Date(2026, 2, 23);
+
+    const recycleTeams = [
+        ['김규현 (20105)', '이준규 (20420)'],
+        ['우희범 (20215)', '이민서 (20521)'],
+        ['최수영 (20328)', '윤 건 (20616)'],
+        ['김기민 (20705)', '손지호 (21012)'],
+        ['홍성민 (20826)', '최정후 (20925)'],
+    ];
+
+    const lunchTeams = [
+        ['강다인 (20102)', '김재윤 (20111)'],
+        ['김무겸 (20203)', '이창인 (20220)'],
+        ['이주환 (20318)', '최민준 (20326)'],
+        ['고나은 (20401)', '송채린 (20411)'],
+        ['서 윤 (20515)', '윤여산 (20519)'],
+        ['유지안 (20615)', '이지민 (20621)'],
+        ['김러원 (20706)', '한보경 (20727)'],
+        ['김민서 (20802)', '박수민 (20814)'],
+        ['유가람 (20915)', '한민경 (20927)'],
+        ['신수찬 (21013)', '오준희 (21015)'],
+    ];
+
+    const getWeekIndex = (startDate, totalTeams) => {
+        const now = new Date();
+        const diff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24 * 7));
+        if (diff < 0) return -1;
+        return diff % totalTeams;
+    };
+
+    const recycleIdx = getWeekIndex(RECYCLE_START, recycleTeams.length);
+    const lunchIdx = getWeekIndex(LUNCH_START, lunchTeams.length);
+
+    // 시작 전이면 임시 표시용
+    const recycleDisplay = recycleIdx === -1 ? ['김지훈 (20300)', '김단희 (20500)'] : recycleTeams[recycleIdx];
+    const lunchDisplay = lunchIdx === -1 ? ['신민영 (20700)', '이진선 (20800)'] : lunchTeams[lunchIdx];
+
+    return (
+        <section style={{ marginTop: 24 }}>
+            <div onClick={() => setOpen(!open)} style={{
+                background: 'white', borderRadius: 'var(--radius)', padding: '16px 20px',
+                boxShadow: 'var(--shadow-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+            }}>
+                <h2 style={{
+                    fontSize: 16, fontWeight: 800, margin: 0, fontFamily: 'Pretendard, sans-serif',
+                    color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8
+                }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: 20, color: '#3b82f6' }}>notifications</span>
+                    이번주 활동 도우미
+                </h2>
+                <span className="material-symbols-rounded" style={{ fontSize: 20, color: '#94a3b8', transition: 'transform 0.3s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>expand_more</span>
+            </div>
+            {open && (
+                <div style={{ background: 'white', borderRadius: '0 0 var(--radius) var(--radius)', padding: '0 20px 20px', marginTop: -8, boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ padding: '16px 0', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Pretendard, sans-serif', color: '#0f172a' }}>분리수거 도우미</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                            {recycleDisplay.map((name, i) => (
+                                <div key={i} style={{
+                                    padding: '10px 20px', borderRadius: 12,
+                                    background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+                                    textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'Pretendard, sans-serif', color: '#166534'
+                                }}>{name}</div>
+                            ))}
+                        </div>
+                    </div>
+                    <div style={{ padding: '16px 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Pretendard, sans-serif', color: '#0f172a' }}>급식지도 도우미</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                            {lunchDisplay.map((name, i) => (
+                                <div key={i} style={{
+                                    padding: '10px 20px', borderRadius: 12,
+                                    background: 'linear-gradient(135deg, #fff7ed, #fed7aa)',
+                                    textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'Pretendard, sans-serif', color: '#9a3412'
+                                }}>{name}</div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+}
+
 function WeeklySchedule() {
     const [weekData, setWeekData] = useState({});
     const [loaded, setLoaded] = useState(false);
@@ -535,7 +629,7 @@ function WeeklySchedule() {
         <section style={{ background: 'white', borderRadius: 'var(--radius)', padding: '20px', boxShadow: 'var(--shadow-sm)', marginTop: 24 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Pretendard, sans-serif' }}>
                 <span className="material-symbols-rounded" style={{ fontSize: 20, color: 'var(--accent)' }}>date_range</span>
-                한주의 일정
+                창의적체험활동 일정
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
                 {dayLabels.map((label, i) => {

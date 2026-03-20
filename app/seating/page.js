@@ -101,6 +101,7 @@ function SeatingApp({ uid }) {
     const [selectedSecretStudent, setSelectedSecretStudent] = useState(null);
     const [showConfirm, setShowConfirm] = useState(false);
     const [dataLoaded, setDataLoaded] = useState(false);
+    const [stylesReady, setStylesReady] = useState(false);
     const logoClickCountRef = useRef(0);
     const logoClickTimerRef = useRef(null);
     const printRef = useRef(null);
@@ -261,7 +262,15 @@ function SeatingApp({ uid }) {
         </div>
     );
 
-    if (!dataLoaded) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f1f5f9' }}><div className="spinner"></div></div>;
+    useEffect(() => {
+        const check = () => {
+            if (typeof window !== 'undefined' && window.tailwind) setStylesReady(true);
+            else setTimeout(check, 100);
+        };
+        check();
+    }, []);
+
+    if (!dataLoaded || !stylesReady) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f1f5f9' }}><div className="spinner"></div></div>;
 
     return (
         <div className="min-h-screen flex flex-col overflow-x-hidden text-slate-800 font-sans animate-fade-in">

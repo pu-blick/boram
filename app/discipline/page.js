@@ -76,6 +76,49 @@ export default function DisciplinePage() {
     const [selectedGrade, setSelectedGrade] = useState(2);
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [selectedClass, setSelectedClass] = useState(null);
+    const [masterStudents, setMasterStudents] = useState(null);
+    const [resetPopup, setResetPopup] = useState(null); // { student }
+    const [resetting, setResetting] = useState(false);
+    const [deletePopup, setDeletePopup] = useState(null); // { student }
+    const [deleteStep, setDeleteStep] = useState(0);
+    const [deleteReason, setDeleteReason] = useState('');
+    const [deleting, setDeleting] = useState(false);
+    const longPressTimer = {};
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmK27_RCgeQHOINSeec1hM-yrNcHP139QNYa7pGrEBDyL92vhfTGsOvqGH5zMntqiiDg/exec';
+
+    const handleReset = async () => {
+        if (!resetPopup) return;
+        setResetting(true);
+        try {
+            await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'resetRecord', studentId: resetPopup.student.id })
+            });
+            setResetPopup(null);
+            handleFetchSheet(selectedGrade);
+        } catch (err) {
+            console.error('초기화 실패:', err);
+        } finally { setResetting(false); }
+    };
+
+    const handleDelete = async () => {
+        if (!deletePopup || !deleteReason.trim()) return;
+        setDeleting(true);
+        try {
+            await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'deleteRecord', studentId: deletePopup.student.id, reason: deleteReason.trim() })
+            });
+            setDeletePopup(null);
+            setDeleteStep(0);
+            setDeleteReason('');
+            handleFetchSheet(selectedGrade);
+        } catch (err) {
+            console.error('삭제 실패:', err);
+        } finally { setDeleting(false); }
+    };
 
     const handleFetchSheet = useCallback(async (grade) => {
         setIsSyncing(true);
@@ -84,6 +127,7 @@ export default function DisciplinePage() {
         setSelectedGrade(grade);
         setSelectedClass(null);
         try {
+            // 기존 데이터 먼저 가져오기 (이건 항상 동작)
             const { students: data, allStudents: every, loadedSheets: sheets } = await fetchAllStudentData(grade);
             setStudents(data);
             setAllStudentsList(every);
@@ -97,6 +141,22 @@ export default function DisciplinePage() {
             setIsSyncing(false);
             setLoading(false);
         }
+
+        // 명부통계는 별도로 (실패해도 기존 데이터에 영향 없음)
+        try {
+            const res = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'getMaster', grade: String(grade) })
+            });
+            const text = await res.text();
+            console.log('명부통계 응답:', text.substring(0, 200));
+            const json = JSON.parse(text);
+            console.log('명부통계 파싱:', Array.isArray(json), json.length);
+            if (Array.isArray(json) && json.length > 0) setMasterStudents(json);
+        } catch (err) {
+            console.error('명부통계 fetch 실패 (무시):', err);
+        }
     }, []);
 
     const allClasses = [...new Set(students.map(s => s.class))].sort((a, b) => {
@@ -105,11 +165,18 @@ export default function DisciplinePage() {
         return numA - numB;
     });
 
-    const filteredStudents = students.filter(s => {
+    // 명부통계 데이터만 표시 (내 시트 안 보임)
+    const displayStudents = (masterStudents && masterStudents.length > 0) ? masterStudents.map(ms => ({
+        ...ms,
+        records: Array.from({ length: ms.count }, (_, i) => ({ date: '', reason: (i + 1) + '차', cycle: 1, session: i + 1 }))
+    })) : [];
+
+    const filteredStudents = displayStudents.filter(s => {
         if (selectedClass && s.class !== selectedClass) return false;
         if (viewMode === VIEW_ALL) return true;
-        if (viewMode === VIEW_WARNING) return s.records.some(r => r.session === 3);
-        if (viewMode === VIEW_COMMITTEE) return s.records.some(r => r.session === 4);
+        const cnt = s.count || s.records.length;
+        if (viewMode === VIEW_WARNING) return cnt >= 3;
+        if (viewMode === VIEW_COMMITTEE) return cnt >= 4;
         return true;
     });
 
@@ -201,9 +268,9 @@ export default function DisciplinePage() {
                     {/* Summary Cards */}
                     <div style={S.cardGrid}>
                         {[
-                            { label: '기록 학생', value: students.length, bg: '#0f172a', icon: 'fa-solid fa-user-group' },
-                            { label: '주의 대상', value: students.filter(s => s.records.some(r => r.session === 3)).length, bg: '#f59e0b', icon: 'fa-solid fa-triangle-exclamation' },
-                            { label: '선도 확정', value: students.filter(s => s.records.some(r => r.session === 4)).length, bg: '#e11d48', icon: 'fa-solid fa-gavel' },
+                            { label: '기록 학생', value: displayStudents.length, bg: '#0f172a', icon: 'fa-solid fa-user-group' },
+                            { label: '주의 대상', value: displayStudents.filter(s => (s.count || s.records.length) >= 3).length, bg: '#f59e0b', icon: 'fa-solid fa-triangle-exclamation' },
+                            { label: '선도 확정', value: displayStudents.filter(s => (s.count || s.records.length) >= 4).length, bg: '#e11d48', icon: 'fa-solid fa-gavel' },
                         ].map(c => (
                             <div key={c.label} style={S.card}>
                                 <div style={S.cardIcon(c.bg)}><i className={c.icon}></i></div>
@@ -226,8 +293,8 @@ export default function DisciplinePage() {
                         ))}
                     </div>
 
-                    {/* Download */}
-                    {filteredStudents.length > 0 && (
+                    {/* Download - 명부통계 없을 때만 표시 */}
+                    {filteredStudents.length > 0 && !masterStudents && (
                         <button style={S.dlBtn} onClick={handleDownloadCSV}>
                             <i className="fa-solid fa-file-excel"></i> {selectedGrade}학년 엑셀 다운로드
                         </button>
@@ -252,8 +319,10 @@ export default function DisciplinePage() {
                                     </thead>
                                     <tbody>
                                         {filteredStudents.map(student => {
-                                            const hasC = student.records.some(r => r.session === 4);
-                                            const hasW = student.records.some(r => r.session === 3);
+                                            const cnt = student.count || student.records.length;
+                                            const hasC = cnt >= 4;
+                                            const hasW = cnt >= 3;
+                                            const isMaster = !!student.count;
                                             return (
                                                 <tr key={student.id}>
                                                     <td style={S.td}>
@@ -268,26 +337,62 @@ export default function DisciplinePage() {
                                                         <div style={S.studentId}>{student.id}</div>
                                                     </td>
                                                     <td style={{ ...S.td, textAlign: 'left' }}>
-                                                        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                                                            {[1, 2, 3, 4].map(cycle => {
-                                                                const recs = student.records.filter(r => r.cycle === cycle);
-                                                                if (recs.length === 0) return null;
-                                                                return (
-                                                                    <div key={cycle} style={S.cycleGroup}>
-                                                                        <span style={S.cycleLabel}>{cycle}차</span>
-                                                                        {[1, 2, 3, 4].map(s => {
-                                                                            const r = recs.find(x => x.session === s);
-                                                                            return (
-                                                                                <div key={s} style={S.dot(!!r, s)}
-                                                                                    onClick={() => r && setSelectedRecord(r)}>
-                                                                                    {s}
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
+                                                        {isMaster ? (() => {
+                                                            const parsed = {};
+                                                            if (student.summary) {
+                                                                const parts = student.summary.split(/\[(\d+)차\]\s*/);
+                                                                for (let p = 1; p < parts.length; p += 2) {
+                                                                    const num = parseInt(parts[p], 10);
+                                                                    const text = (parts[p + 1] || '').replace(/\n/g, ' ').trim();
+                                                                    if (text) {
+                                                                        const dateMatch = text.match(/^(\d+[./]\d+)\s+(.+)/);
+                                                                        parsed[num] = dateMatch ? { date: dateMatch[1], reason: dateMatch[2] } : { date: '', reason: text };
+                                                                    }
+                                                                }
+                                                            }
+                                                            return (<div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                                                                <div style={S.cycleGroup}>
+                                                                    <span style={S.cycleLabel}>{cnt}회</span>
+                                                                    {Array.from({ length: Math.max(cnt, 4) }, (_, i) => i + 1).map(n => (
+                                                                        <div key={n} style={S.dot(n <= cnt, n >= 4 ? 4 : n === 3 ? 3 : 1)}
+                                                                            onClick={() => { if (n <= cnt && parsed[n]) setSelectedRecord(parsed[n]); }}
+                                                                            onTouchStart={() => { if (n === cnt && n >= 1) longPressTimer[student.id] = setTimeout(() => { setDeletePopup({ student }); setDeleteStep(0); setDeleteReason(''); }, 800); }}
+                                                                            onTouchEnd={() => { clearTimeout(longPressTimer[student.id]); }}
+                                                                            onMouseDown={() => { if (n === cnt && n >= 1) longPressTimer[student.id] = setTimeout(() => { setDeletePopup({ student }); setDeleteStep(0); setDeleteReason(''); }, 800); }}
+                                                                            onMouseUp={() => { clearTimeout(longPressTimer[student.id]); }}>
+                                                                            {n}
+                                                                        </div>
+                                                                    ))}
+                                                                    {cnt >= 4 && (
+                                                                        <button onClick={() => setResetPopup({ student })}
+                                                                            style={{ marginLeft: 8, padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700, border: '1px solid #e11d48', background: 'white', color: '#e11d48', cursor: 'pointer' }}>
+                                                                            초기화
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>);
+                                                        })() : (
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                                                                {[1, 2, 3, 4].map(cycle => {
+                                                                    const recs = student.records.filter(r => r.cycle === cycle);
+                                                                    if (recs.length === 0) return null;
+                                                                    return (
+                                                                        <div key={cycle} style={S.cycleGroup}>
+                                                                            <span style={S.cycleLabel}>{cycle}차</span>
+                                                                            {[1, 2, 3, 4].map(s => {
+                                                                                const r = recs.find(x => x.session === s);
+                                                                                return (
+                                                                                    <div key={s} style={S.dot(!!r, s)}
+                                                                                        onClick={() => r && setSelectedRecord(r)}>
+                                                                                        {s}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );
@@ -308,20 +413,82 @@ export default function DisciplinePage() {
                 {/* Modal */}
                 {selectedRecord && (
                     <div style={S.modal}>
-                        <div style={S.modalBox}>
-                            <p style={S.modalLabel}>날짜/사유 :</p>
-                            <p style={S.modalValue}>{selectedRecord.date}</p>
-                            <p style={S.modalLabel}>누적횟수 :</p>
-                            <p style={S.modalValue}>{selectedRecord.reason}</p>
-                            <button style={S.modalBtn} onClick={() => setSelectedRecord(null)}>확인</button>
+                        <div style={{ ...S.modalBox, fontFamily: 'Pretendard, sans-serif' }}>
+                            <p style={S.modalLabel}>날짜 :</p>
+                            <p style={S.modalValue}>{selectedRecord.date || '-'}</p>
+                            <p style={S.modalLabel}>사유 :</p>
+                            <p style={{ ...S.modalValue, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{selectedRecord.reason}</p>
+                            <button style={{ ...S.modalBtn, fontFamily: 'Pretendard, sans-serif' }} onClick={() => setSelectedRecord(null)}>확인</button>
                         </div>
                     </div>
                 )}
 
-                {/* FAB - 엑셀 */}
-                <a href={`https://docs.google.com/spreadsheets/d/${SHEET_IDS[selectedGrade]}/edit`} target="_blank" rel="noreferrer" style={S.fab}>
-                    <i className="fa-solid fa-file-excel"></i>
-                </a>
+                {deletePopup && (
+                    <div style={S.modal} onClick={() => { setDeletePopup(null); setDeleteStep(0); }}>
+                        <div style={{ ...S.modalBox, fontFamily: 'Pretendard, sans-serif' }} onClick={e => e.stopPropagation()}>
+                            {deleteStep === 0 ? (
+                                <>
+                                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                            <i className="fa-solid fa-heart" style={{ fontSize: 28, color: '#3b82f6' }}></i>
+                                        </div>
+                                        <p style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', marginBottom: 8, letterSpacing: -0.5 }}>바다와 같은 마음의 선생님</p>
+                                        <p style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}><b>{deletePopup.student.name}</b> 학생에게</p>
+                                        <p style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>한번 더 기회를 줄까요?</p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 10 }}>
+                                        <button style={{ ...S.modalBtn, background: '#f1f5f9', color: '#475569', fontFamily: 'Pretendard, sans-serif' }} onClick={() => { setDeletePopup(null); setDeleteStep(0); }}>아니요</button>
+                                        <button style={{ ...S.modalBtn, background: '#3b82f6', fontFamily: 'Pretendard, sans-serif' }} onClick={() => setDeleteStep(1)}>네, 기회를 줄게요</button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                                        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                            <i className="fa-solid fa-pen-nib" style={{ fontSize: 24, color: '#3b82f6' }}></i>
+                                        </div>
+                                        <p style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>기회를 주는 이유</p>
+                                    </div>
+                                    <textarea value={deleteReason} onChange={e => setDeleteReason(e.target.value)}
+                                        placeholder="예) 반성문 작성 완료, 봉사활동 참여..."
+                                        style={{ width: '100%', padding: 12, borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 14, fontFamily: 'Pretendard, sans-serif', minHeight: 80, resize: 'none', marginBottom: 12, boxSizing: 'border-box' }} />
+                                    <button style={{ ...S.modalBtn, background: deleting ? '#94a3b8' : '#3b82f6', fontFamily: 'Pretendard, sans-serif' }}
+                                        onClick={handleDelete} disabled={deleting || !deleteReason.trim()}>
+                                        {deleting ? '처리 중...' : '완료 - 기록 삭제'}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {resetPopup && (
+                    <div style={S.modal} onClick={() => setResetPopup(null)}>
+                        <div style={{ ...S.modalBox, fontFamily: 'Pretendard, sans-serif' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                    <i className="fa-solid fa-rotate-right" style={{ fontSize: 28, color: '#475569' }}></i>
+                                </div>
+                                <p style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', marginBottom: 8, letterSpacing: -0.5 }}>기록을 새롭게 초기화 합니다</p>
+                                <p style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}><b>{resetPopup.student.name}</b> ({resetPopup.student.id})</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button style={{ ...S.modalBtn, background: '#f1f5f9', color: '#475569', fontFamily: 'Pretendard, sans-serif' }} onClick={() => setResetPopup(null)}>취소</button>
+                                <button style={{ ...S.modalBtn, background: resetting ? '#94a3b8' : '#e11d48', fontFamily: 'Pretendard, sans-serif' }}
+                                    onClick={handleReset} disabled={resetting}>
+                                    {resetting ? '처리 중...' : '초기화'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* FAB - 엑셀 (명부통계 없을 때만) */}
+                {!masterStudents && (
+                    <a href={`https://docs.google.com/spreadsheets/d/${SHEET_IDS[selectedGrade]}/edit`} target="_blank" rel="noreferrer" style={S.fab}>
+                        <i className="fa-solid fa-file-excel"></i>
+                    </a>
+                )}
             </div>
         </>
     );
