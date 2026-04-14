@@ -126,36 +126,34 @@ export default function DisciplinePage() {
         setError(null);
         setSelectedGrade(grade);
         setSelectedClass(null);
+        setMasterStudents(null);
         try {
-            // 기존 데이터 먼저 가져오기 (이건 항상 동작)
-            const { students: data, allStudents: every, loadedSheets: sheets } = await fetchAllStudentData(grade);
+            // 기존 데이터 + 명부통계 동시 요청
+            const [sheetResult, masterResult] = await Promise.all([
+                fetchAllStudentData(grade).catch(err => { console.error('Sheet Error:', err); return { students: [], allStudents: [], loadedSheets: [] }; }),
+                fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'getMaster', grade: String(grade) })
+                }).then(r => r.text()).then(t => { try { return JSON.parse(t); } catch(e) { return []; } }).catch(() => [])
+            ]);
+
+            const { students: data, allStudents: every, loadedSheets: sheets } = sheetResult;
             setStudents(data);
             setAllStudentsList(every);
             setLoadedSheets(sheets);
+
+            if (Array.isArray(masterResult) && masterResult.length > 0) {
+                setMasterStudents(masterResult);
+            }
+
             if (sheets.length === 0) setError('NOT_FOUND');
-            else if (data.length === 0) setError('DATA_EMPTY');
         } catch (err) {
             console.error('Fetch Error:', err);
             setError('UNKNOWN');
         } finally {
             setIsSyncing(false);
             setLoading(false);
-        }
-
-        // 명부통계는 별도로 (실패해도 기존 데이터에 영향 없음)
-        try {
-            const res = await fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'getMaster', grade: String(grade) })
-            });
-            const text = await res.text();
-            console.log('명부통계 응답:', text.substring(0, 200));
-            const json = JSON.parse(text);
-            console.log('명부통계 파싱:', Array.isArray(json), json.length);
-            if (Array.isArray(json) && json.length > 0) setMasterStudents(json);
-        } catch (err) {
-            console.error('명부통계 fetch 실패 (무시):', err);
         }
     }, []);
 
@@ -350,12 +348,12 @@ export default function DisciplinePage() {
                                                                     }
                                                                 }
                                                             }
-                                                            return (<div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                                                                <div style={S.cycleGroup}>
+                                                            return (<div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap' }}>
                                                                     <span style={S.cycleLabel}>{cnt}회</span>
-                                                                    {Array.from({ length: Math.max(cnt, 4) }, (_, i) => i + 1).map(n => (
+                                                                    {Array.from({ length: Math.min(cnt, 4) }, (_, i) => i + 1).map(n => (
                                                                         <div key={n} style={S.dot(n <= cnt, n >= 4 ? 4 : n === 3 ? 3 : 1)}
-                                                                            onClick={() => { if (n <= cnt && parsed[n]) setSelectedRecord(parsed[n]); }}
+                                                                            onClick={() => { if (parsed[n]) setSelectedRecord(parsed[n]); }}
                                                                             onTouchStart={() => { if (n === cnt && n >= 1) longPressTimer[student.id] = setTimeout(() => { setDeletePopup({ student }); setDeleteStep(0); setDeleteReason(''); }, 800); }}
                                                                             onTouchEnd={() => { clearTimeout(longPressTimer[student.id]); }}
                                                                             onMouseDown={() => { if (n === cnt && n >= 1) longPressTimer[student.id] = setTimeout(() => { setDeletePopup({ student }); setDeleteStep(0); setDeleteReason(''); }, 800); }}
@@ -364,12 +362,27 @@ export default function DisciplinePage() {
                                                                         </div>
                                                                     ))}
                                                                     {cnt >= 4 && (
-                                                                        <button onClick={() => setResetPopup({ student })}
+                                                                        <button className="reset-btn-inline" onClick={() => setResetPopup({ student })}
                                                                             style={{ marginLeft: 8, padding: '4px 10px', borderRadius: 8, fontSize: 10, fontWeight: 700, border: '1px solid #e11d48', background: 'white', color: '#e11d48', cursor: 'pointer' }}>
                                                                             초기화
                                                                         </button>
                                                                     )}
                                                                 </div>
+                                                                {cnt > 4 && (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', marginTop: 4 }}>
+                                                                        <span style={{ ...S.cycleLabel, visibility: 'hidden' }}>{cnt}회</span>
+                                                                        {Array.from({ length: cnt - 4 }, (_, i) => i + 5).map(n => (
+                                                                            <div key={n} style={S.dot(true, n >= 4 ? 4 : n === 3 ? 3 : 1)}
+                                                                                onClick={() => { if (parsed[n]) setSelectedRecord(parsed[n]); }}
+                                                                                onTouchStart={() => { if (n === cnt) longPressTimer[student.id] = setTimeout(() => { setDeletePopup({ student }); setDeleteStep(0); setDeleteReason(''); }, 800); }}
+                                                                                onTouchEnd={() => { clearTimeout(longPressTimer[student.id]); }}
+                                                                                onMouseDown={() => { if (n === cnt) longPressTimer[student.id] = setTimeout(() => { setDeletePopup({ student }); setDeleteStep(0); setDeleteReason(''); }, 800); }}
+                                                                                onMouseUp={() => { clearTimeout(longPressTimer[student.id]); }}>
+                                                                                {n}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>);
                                                         })() : (
                                                             <div style={{ display: 'flex', flexWrap: 'wrap' }}>

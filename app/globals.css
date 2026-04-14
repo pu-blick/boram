@@ -532,6 +532,14 @@ body {
     background: transparent;
 }
 
+/* 모바일에서 초기화 버튼 아래로 */
+@media (max-width: 767px) {
+    .reset-btn-inline {
+        margin-left: 0 !important;
+        margin-top: 4px !important;
+    }
+}
+
 @media (max-width: 600px) {
     .login-card {
         padding: 36px 24px;

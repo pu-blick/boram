@@ -440,21 +440,29 @@ function MainSite({ role, user }) {
 const SCHEDULE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/11v6OaMfVEOGOhNYDwpPX8dMw94lek7iX_A1SceyRHkc/export?format=csv&gid=1333092882';
 
 function parseCSV(text) {
-    const lines = text.split('\n');
     const rows = [];
-    for (const line of lines) {
-        const cells = [];
-        let current = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-            const ch = line[i];
-            if (ch === '"') { inQuotes = !inQuotes; }
-            else if (ch === ',' && !inQuotes) { cells.push(current.trim()); current = ''; }
-            else { current += ch; }
+    let current = '';
+    let inQuotes = false;
+    let cells = [];
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') {
+            inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+            cells.push(current.trim());
+            current = '';
+        } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+            if (ch === '\r' && text[i + 1] === '\n') i++;
+            cells.push(current.trim());
+            if (cells.some(c => c !== '')) rows.push(cells);
+            cells = [];
+            current = '';
+        } else {
+            current += ch;
         }
-        cells.push(current.trim());
-        rows.push(cells);
     }
+    cells.push(current.trim());
+    if (cells.some(c => c !== '')) rows.push(cells);
     return rows;
 }
 
@@ -619,6 +627,9 @@ function WeeklySchedule() {
                         }
                     }
                 }
+                console.log('이번주:', weekDates.map(d => (d.getMonth()+1)+'/'+d.getDate()));
+                console.log('매칭결과:', result);
+                console.log('CSV 날짜샘플:', rows.slice(1, 25).filter(r => r[0]).map(r => r[0]));
                 setWeekData(result);
                 setLoaded(true);
             })
