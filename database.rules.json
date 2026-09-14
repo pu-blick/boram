@@ -1,0 +1,60 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && ((auth.uid === $uid && !data.exists()) || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+        "role": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+          ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'approved' || newData.val() === 'admin' || newData.val() === 'rejected')"
+        },
+        "email": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "displayName": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length <= 50"
+        },
+        "createdAt": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      },
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "students": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('role').val() === 'approved')",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$studentId": {
+        ".validate": "newData.hasChildren(['id', 'name'])",
+        "id": { ".validate": "newData.isString()" },
+        "name": { ".validate": "newData.isString() && newData.val().length <= 20" },
+        "pw": { ".validate": "newData.isString()" },
+        "grade": { ".validate": "newData.isNumber() || newData.isString()" },
+        "class": { ".validate": "newData.isNumber() || newData.isString()" },
+        "num": { ".validate": "newData.isNumber() || newData.isString()" }
+      }
+    },
+    "schedules": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      "$year": {
+        "$month": {
+          "$day": {
+            ".validate": "newData.isString() && newData.val().length <= 5000"
+          }
+        }
+      }
+    },
+    "userdata": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}
