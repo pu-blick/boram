@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../components/AuthProvider';
 import ChatBot from '../components/ChatBot';
+import YajaSection from '../components/YajaSection';
 import { auth, getSchedules, parseSchedule } from '../lib/firebase';
 import { fetchAllStudentData } from '../lib/discipline';
 
@@ -282,6 +283,8 @@ function MainSite({ role, user }) {
                 </div>
 
                 <HelperSection />
+
+                <YajaSection />
 
                 <WeeklySchedule />
 
