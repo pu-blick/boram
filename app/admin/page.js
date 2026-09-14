@@ -238,14 +238,11 @@ function ScheduleManager() {
                         <div key={d} onClick={() => handleDayClick(d)}
                             style={{ minHeight: 56, padding: '4px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 12, textAlign: 'center', border: isEditing ? '2px solid #3b82f6' : isToday ? '2px solid #10b981' : '1px solid #f1f5f9', background: isEditing ? '#eff6ff' : hasEvent ? '#f0fdf4' : '#fff', transition: 'all 0.15s' }}>
                             <div style={{ fontWeight: 600, marginBottom: 2, color: isToday ? '#10b981' : undefined }}>{d}</div>
-                            {hasEvent && parseSchedule(schedules[d]).slice(0, 2).map((it, j) => (
+                            {hasEvent && parseSchedule(schedules[d]).map((it, j) => (
                                 <div key={j} style={{ fontSize: 9, color: '#059669', fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap' }}>
                                     {it.summary}
                                 </div>
                             ))}
-                            {hasEvent && parseSchedule(schedules[d]).length > 2 && (
-                                <div style={{ fontSize: 9, color: '#94a3b8', lineHeight: 1.3 }}>+{parseSchedule(schedules[d]).length - 2}</div>
-                            )}
                         </div>
                     );
                 })}

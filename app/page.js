@@ -745,10 +745,9 @@ function CalendarSection() {
                             onClick={hasSchedule ? () => openDay(d) : undefined}
                         >
                             <span className="cal-date">{d}</span>
-                            {items.slice(0, 2).map((it, j) => (
+                            {items.map((it, j) => (
                                 <span key={j} className="cal-schedule-text">{it.summary}</span>
                             ))}
-                            {items.length > 2 && <span className="cal-schedule-more">+{items.length - 2}</span>}
                         </div>
                     );
                 })}

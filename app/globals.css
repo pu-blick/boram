@@ -527,15 +527,6 @@ body {
     text-align: center;
 }
 
-.cal-schedule-more {
-    display: block;
-    align-self: stretch;
-    font-size: 9px;
-    color: #94a3b8;
-    line-height: 1.2;
-    text-align: center;
-}
-
 .cal-cell.has-event {
     background: transparent;
     cursor: pointer;
@@ -594,10 +585,6 @@ body {
         line-height: 1.2;
         letter-spacing: -0.8px;
         margin: 0 -2px;
-    }
-
-    .cal-schedule-more {
-        font-size: 8px;
     }
 
     .calendar-section {
