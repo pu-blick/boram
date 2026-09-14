@@ -270,6 +270,9 @@ function MainSite({ role, user }) {
                     <a href="/seating" className="circle-btn">
                         <img src="/CLASS HELP.png" alt="CLASS HELP" />
                     </a>
+                    <a href="https://edumemo-renewal.vercel.app/" target="_blank" rel="noopener noreferrer" className="circle-btn">
+                        <img src="/에듀메모.png" alt="에듀메모" />
+                    </a>
                     <a href="/discipline" className="circle-btn">
                         <img src="/공동체 관리대장.png" alt="공동체 관리대장" />
                     </a>
@@ -277,10 +280,6 @@ function MainSite({ role, user }) {
                         <img src="/id.png" alt="ID" />
                     </a>
                 </section>
-
-                <div className="edumemo-wrap">
-                    <a href="https://edumemo-renewal.vercel.app/" target="_blank" rel="noopener noreferrer" className="edumemo-link">EduMemo</a>
-                </div>
 
                 <HelperSection />
 
@@ -307,7 +306,8 @@ function MainSite({ role, user }) {
                 transform: `translateY(${fabOffset}px)`,
                 transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
             }}>
-                <img src="/c_ 1.jpeg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                {/* 버튼 크기는 그대로, 사진을 1.6배 키워 망치(사진 속 중심 59.7%, 49.8%)를 가운데로 */}
+                <img src="/c_ 1.jpeg" alt="" style={{ position: 'absolute', width: '160%', height: '160%', left: '-45.5%', top: '-29.7%', maxWidth: 'none', display: 'block' }} />
             </button>
 
             {/* 기록 모달 */}

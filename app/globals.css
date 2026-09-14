@@ -532,39 +532,11 @@ body {
     cursor: pointer;
 }
 
-/* EduMemo 링크: 흐르는 그라데이션 글자 */
-.edumemo-wrap {
-    text-align: center;
-    margin: 16px 0 6px;
-}
-
-.edumemo-link {
-    display: inline-block;
-    font-size: 28px;
-    font-weight: 900;
-    letter-spacing: -0.5px;
-    text-decoration: none;
-    color: #2563eb;
-    background: linear-gradient(90deg, #1d4ed8, #3b82f6, #06b6d4, #1d4ed8) 0 0 / 300%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    cursor: pointer;
-    transition: transform 0.2s;
-    animation: edumemoShine 4s linear infinite, edumemoGlow 2s ease-in-out infinite;
-}
-
-.edumemo-link:hover {
-    transform: scale(1.08);
-}
-
-@keyframes edumemoShine {
-    to { background-position: 300%; }
-}
-
-@keyframes edumemoGlow {
-    0%, 100% { filter: drop-shadow(0 0 4px #3b82f673); }
-    50% { filter: drop-shadow(0 0 14px #3b82f6e6); }
+/* 아이콘 버튼 5개가 폰(360px)에서도 한 줄에 들어가도록 간격을 줄인다 (기본 20px → 5×52 + 4×20 = 340px 넘침) */
+@media (max-width: 600px) {
+    .main-content .bottom-links {
+        gap: 12px;
+    }
 }
 
 /* 척척박사 챗봇 */
