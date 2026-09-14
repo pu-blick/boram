@@ -40,20 +40,19 @@ export default function YajaSection() {
 
     return (
         <section style={{ background: 'white', borderRadius: 'var(--radius)', padding: '20px', boxShadow: 'var(--shadow-sm)', marginTop: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed ? 0 : 16 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Pretendard, sans-serif' }}>
+            {/* 이번주 활동 도우미와 같은 모양: 제목 가운데, 화살표는 글씨 오른쪽, 줄 전체를 눌러 접고 편다 */}
+            <button
+                onClick={toggleCollapsed}
+                aria-label={collapsed ? '야자감독 펼치기' : '야자감독 접기'}
+                aria-expanded={!collapsed}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: 0, marginBottom: collapsed ? 0 : 16, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+                <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0, fontFamily: 'Pretendard, sans-serif', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className="material-symbols-rounded" style={{ fontSize: 20, color: 'var(--accent)' }}>nightlight</span>
                     {isNextWeek ? '다음주' : '이번주'} 야자감독
                 </h2>
-                <button
-                    onClick={toggleCollapsed}
-                    aria-label={collapsed ? '야자감독 펼치기' : '야자감독 접기'}
-                    aria-expanded={!collapsed}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, margin: '-8px -8px -8px 0', background: 'none', border: 'none', borderRadius: 10, cursor: 'pointer', color: '#94a3b8' }}
-                >
-                    <span className="material-symbols-rounded" style={{ fontSize: 22, transition: 'transform 0.3s', transform: collapsed ? 'rotate(0)' : 'rotate(180deg)' }}>expand_more</span>
-                </button>
-            </div>
+                <span className="material-symbols-rounded" style={{ fontSize: 20, color: '#94a3b8', transition: 'transform 0.3s', transform: collapsed ? 'rotate(0)' : 'rotate(180deg)' }}>expand_more</span>
+            </button>
 
             {collapsed ? null : failed ? (
                 <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '12px 0' }}>감독표를 불러오지 못했습니다.</p>
