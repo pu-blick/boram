@@ -437,7 +437,8 @@ function MainSite({ role, user }) {
     );
 }
 
-const SCHEDULE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/11v6OaMfVEOGOhNYDwpPX8dMw94lek7iX_A1SceyRHkc/export?format=csv&gid=1333092882';
+// 창체일정 시트의 "2026년 2학기 창체" 탭 (1학기 탭은 gid=1333092882). 학기가 바뀌면 gid만 바꾸면 된다.
+const SCHEDULE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/11v6OaMfVEOGOhNYDwpPX8dMw94lek7iX_A1SceyRHkc/export?format=csv&gid=1326487722';
 
 function parseCSV(text) {
     const rows = [];
