@@ -79,7 +79,8 @@ export default function ChatBot() {
                     aria-label="무엇이든 물어보세요"
                 >
                     <span className="chat-bubble-float" style={{ ...CS.fabBubble, opacity: hover ? 1 : 0 }}>무엇이든 물어보세요</span>
-                    <img className="chat-char" src="/척척박사.png" alt="척척박사" style={{ ...CS.fabChar, transform: hover ? 'scale(1.05)' : 'scale(1)' }} />
+                    {/* 그림 오른쪽 39%가 투명 여백이라, 그림 폭의 14%만큼 오른쪽으로 옮겨도 몸이 잘리지 않는다 (말풍선은 제자리) */}
+                    <img className="chat-char" src="/척척박사.png" alt="척척박사" style={{ ...CS.fabChar, transform: `translateX(14%) scale(${hover ? 1.05 : 1})` }} />
                 </button>
             )}
             {open && (
