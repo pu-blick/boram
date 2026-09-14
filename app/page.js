@@ -6,6 +6,7 @@ import { signOut } from 'firebase/auth';
 import { useAuth } from '../components/AuthProvider';
 import ChatBot from '../components/ChatBot';
 import YajaSection from '../components/YajaSection';
+import CollapsibleHeader, { useCollapsed } from '../components/CollapsibleHeader';
 import { auth, getSchedules, parseSchedule } from '../lib/firebase';
 import { fetchAllStudentData } from '../lib/discipline';
 
@@ -607,6 +608,7 @@ function HelperSection() {
 function WeeklySchedule() {
     const [weekData, setWeekData] = useState({});
     const [loaded, setLoaded] = useState(false);
+    const [collapsed, toggleCollapsed] = useCollapsed('weekly-schedule-collapsed');
     const weekDates = getWeekDates();
     const dayLabels = ['월', '화', '수', '목', '금'];
 
@@ -649,10 +651,8 @@ function WeeklySchedule() {
 
     return (
         <section style={{ background: 'white', borderRadius: 'var(--radius)', padding: '20px', boxShadow: 'var(--shadow-sm)', marginTop: 24 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Pretendard, sans-serif' }}>
-                <span className="material-symbols-rounded" style={{ fontSize: 20, color: 'var(--accent)' }}>date_range</span>
-                창의적체험활동 일정
-            </h2>
+            <CollapsibleHeader icon="date_range" title="창의적체험활동 일정" collapsed={collapsed} onToggle={toggleCollapsed} />
+            {!collapsed && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
                 {dayLabels.map((label, i) => {
                     const date = weekDates[i];
@@ -687,6 +687,7 @@ function WeeklySchedule() {
                     );
                 })}
             </div>
+            )}
         </section>
     );
 }
