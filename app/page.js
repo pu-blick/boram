@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../components/AuthProvider';
+import ChatBot from '../components/ChatBot';
 import { auth, getSchedules, parseSchedule } from '../lib/firebase';
 import { fetchAllStudentData } from '../lib/discipline';
 
@@ -214,7 +215,7 @@ function MainSite({ role, user }) {
                     <li><a href="https://www.notion.so/306eaefe3182802cb920fd4ad04cc492" target="_blank"><span className="material-symbols-rounded">checklist</span> 창체일정</a></li>
                     <li><a href="https://www.notion.so/2026-2-2ffeaefe318280c7bf90d1dee06f5f2f" target="_blank"><span className="material-symbols-rounded">groups</span> NOTION</a></li>
                     <li><a href="https://www.notion.so/303eaefe318280289edcc49f8850d826" target="_blank"><span className="material-symbols-rounded">school</span> 입시컨설팅</a></li>
-                    <li><a href="#"><span className="material-symbols-rounded">directions_bus</span> 수학여행</a></li>
+                    <li><a href="https://boram-trip.vercel.app" target="_blank" rel="noopener noreferrer"><span className="material-symbols-rounded">directions_bus</span> 수학여행</a></li>
                     {role === 'admin' && (
                         <li><a href="/admin"><span className="material-symbols-rounded">admin_panel_settings</span> 관리자</a></li>
                     )}
@@ -254,7 +255,7 @@ function MainSite({ role, user }) {
                             <div className="card-thumb"><img src="/규정모음_2.png" alt="입시컨설팅" /></div>
                             <span className="card-label">입시컨설팅</span>
                         </a>
-                        <a href="#" className="card">
+                        <a href="https://boram-trip.vercel.app" target="_blank" rel="noopener noreferrer" className="card">
                             <div className="card-thumb"><img src="/수학여행.jpeg" alt="수학여행" /></div>
                             <span className="card-label">수학여행</span>
                         </a>
@@ -276,6 +277,10 @@ function MainSite({ role, user }) {
                     </a>
                 </section>
 
+                <div className="edumemo-wrap">
+                    <a href="https://edumemo-renewal.vercel.app/" target="_blank" rel="noopener noreferrer" className="edumemo-link">EduMemo</a>
+                </div>
+
                 <HelperSection />
 
                 <WeeklySchedule />
@@ -287,6 +292,8 @@ function MainSite({ role, user }) {
             <footer className="footer">
                 <p>EduFlow</p>
             </footer>
+
+            <ChatBot />
 
             {/* 위반 기록 플로팅 버튼 */}
             <button className="record-fab" onClick={openRecordModal} style={{

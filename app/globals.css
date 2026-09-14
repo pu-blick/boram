@@ -532,6 +532,63 @@ body {
     cursor: pointer;
 }
 
+/* EduMemo 링크: 흐르는 그라데이션 글자 */
+.edumemo-wrap {
+    text-align: center;
+    margin: 16px 0 6px;
+}
+
+.edumemo-link {
+    display: inline-block;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    text-decoration: none;
+    color: #2563eb;
+    background: linear-gradient(90deg, #1d4ed8, #3b82f6, #06b6d4, #1d4ed8) 0 0 / 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    cursor: pointer;
+    transition: transform 0.2s;
+    animation: edumemoShine 4s linear infinite, edumemoGlow 2s ease-in-out infinite;
+}
+
+.edumemo-link:hover {
+    transform: scale(1.08);
+}
+
+@keyframes edumemoShine {
+    to { background-position: 300%; }
+}
+
+@keyframes edumemoGlow {
+    0%, 100% { filter: drop-shadow(0 0 4px #3b82f673); }
+    50% { filter: drop-shadow(0 0 14px #3b82f6e6); }
+}
+
+/* 척척박사 챗봇 */
+.chat-bubble-float {
+    animation: chatFloat 2.2s ease-in-out infinite;
+}
+
+@keyframes chatFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .chat-char {
+        height: 300px !important;
+    }
+}
+
+@media (min-width: 1025px) {
+    .chat-char {
+        height: 540px !important;
+    }
+}
+
 /* 모바일에서 초기화 버튼 아래로 */
 @media (max-width: 767px) {
     .reset-btn-inline {
