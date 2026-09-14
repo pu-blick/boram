@@ -6,13 +6,27 @@ import { parseSupervisionSheet, getSupervisionWeek } from '../lib/yaja';
 // 2학년부 공용 업무 시트 → "2학기 야자감독" 탭
 // 웹에 게시한 CSV 주소로 바꾸면 파일 전체를 공개하지 않아도 된다.
 const YAJA_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1FAE9gD8U5JHllxRGzaNfGfznR9Wj5itS98SaT0pElPI/export?format=csv&gid=753093703';
+const COLLAPSED_KEY = 'yaja-section-collapsed';
 
 export default function YajaSection() {
     const [schedule, setSchedule] = useState(null);
     const [failed, setFailed] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
     const week = getSupervisionWeek();
     const today = new Date().toDateString();
     const isNextWeek = week[0].date > new Date();
+
+    // 접은 상태는 기기마다 기억한다
+    useEffect(() => {
+        try { setCollapsed(localStorage.getItem(COLLAPSED_KEY) === '1'); } catch (e) { /* 저장소 사용 불가 */ }
+    }, []);
+
+    const toggleCollapsed = () => {
+        setCollapsed((prev) => {
+            try { localStorage.setItem(COLLAPSED_KEY, prev ? '0' : '1'); } catch (e) { /* 저장소 사용 불가 */ }
+            return !prev;
+        });
+    };
 
     useEffect(() => {
         fetch(YAJA_SHEET_URL)
@@ -26,12 +40,22 @@ export default function YajaSection() {
 
     return (
         <section style={{ background: 'white', borderRadius: 'var(--radius)', padding: '20px', boxShadow: 'var(--shadow-sm)', marginTop: 24 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Pretendard, sans-serif' }}>
-                <span className="material-symbols-rounded" style={{ fontSize: 20, color: 'var(--accent)' }}>nightlight</span>
-                {isNextWeek ? '다음주' : '이번주'} 야자감독
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed ? 0 : 16 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Pretendard, sans-serif' }}>
+                    <span className="material-symbols-rounded" style={{ fontSize: 20, color: 'var(--accent)' }}>nightlight</span>
+                    {isNextWeek ? '다음주' : '이번주'} 야자감독
+                </h2>
+                <button
+                    onClick={toggleCollapsed}
+                    aria-label={collapsed ? '야자감독 펼치기' : '야자감독 접기'}
+                    aria-expanded={!collapsed}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, margin: '-8px -8px -8px 0', background: 'none', border: 'none', borderRadius: 10, cursor: 'pointer', color: '#94a3b8' }}
+                >
+                    <span className="material-symbols-rounded" style={{ fontSize: 22, transition: 'transform 0.3s', transform: collapsed ? 'rotate(0)' : 'rotate(180deg)' }}>expand_more</span>
+                </button>
+            </div>
 
-            {failed ? (
+            {collapsed ? null : failed ? (
                 <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '12px 0' }}>감독표를 불러오지 못했습니다.</p>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
