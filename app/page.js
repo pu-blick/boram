@@ -306,8 +306,8 @@ function MainSite({ role, user }) {
                 transform: `translateY(${fabOffset}px)`,
                 transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
             }}>
-                {/* 버튼 크기는 그대로, 사진을 1.6배 키워 망치(사진 속 중심 59.7%, 49.8%)를 가운데로 */}
-                <img src="/c_ 1.jpeg" alt="" style={{ position: 'absolute', width: '160%', height: '160%', left: '-45.5%', top: '-29.7%', maxWidth: 'none', display: 'block' }} />
+                {/* 버튼 크기는 그대로, 사진을 1.45배 키워 망치(사진 속 중심 59.7%, 49.8%)를 가운데로 */}
+                <img src="/c_ 1.jpeg" alt="" style={{ position: 'absolute', width: '145%', height: '145%', left: '-36.6%', top: '-22.2%', maxWidth: 'none', display: 'block' }} />
             </button>
 
             {/* 기록 모달 */}
