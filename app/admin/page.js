@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ref, onValue } from 'firebase/database';
 import { useAuth } from '../../components/AuthProvider';
-import { db, setUserRole, getSchedules, setSchedule } from '../../lib/firebase';
+import { db, setUserRole, getSchedules, setSchedule, splitSchedule, joinSchedule, SCHEDULE_MAX_LENGTH } from '../../lib/firebase';
 
 export default function AdminPage() {
     const { user, role, loading } = useAuth();
@@ -153,7 +153,9 @@ function ScheduleManager() {
     const [month, setMonth] = useState(today.getMonth() + 1);
     const [schedules, setSchedulesState] = useState({});
     const [editDay, setEditDay] = useState(null);
-    const [editText, setEditText] = useState('');
+    const [editSummary, setEditSummary] = useState('');
+    const [editDetail, setEditDetail] = useState('');
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         getSchedules(year, month).then(setSchedulesState);
@@ -173,17 +175,33 @@ function ScheduleManager() {
     };
 
     const handleDayClick = (d) => {
+        const { summary, detail } = splitSchedule(schedules[d]);
         setEditDay(d);
-        setEditText(schedules[d] || '');
+        setEditSummary(summary);
+        setEditDetail(detail);
     };
 
-    const handleSave = async () => {
-        if (editDay === null) return;
-        await setSchedule(year, month, editDay, editText.trim() || null);
-        const updated = await getSchedules(year, month);
-        setSchedulesState(updated);
+    const closeEditor = () => {
         setEditDay(null);
-        setEditText('');
+        setEditSummary('');
+        setEditDetail('');
+    };
+
+    const joined = joinSchedule(editSummary, editDetail);
+    const tooLong = joined.length > SCHEDULE_MAX_LENGTH;
+    const missingSummary = !editSummary.trim() && !!editDetail.trim();
+
+    const handleSave = async () => {
+        if (editDay === null || tooLong || missingSummary || saving) return;
+        setSaving(true);
+        const ok = await setSchedule(year, month, editDay, joined || null);
+        setSaving(false);
+        if (!ok) {
+            alert('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+            return;
+        }
+        setSchedulesState(await getSchedules(year, month));
+        closeEditor();
     };
 
     return (
@@ -212,8 +230,8 @@ function ScheduleManager() {
                             style={{ minHeight: 56, padding: '4px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 12, textAlign: 'center', border: isEditing ? '2px solid #3b82f6' : isToday ? '2px solid #10b981' : '1px solid #f1f5f9', background: isEditing ? '#eff6ff' : hasEvent ? '#f0fdf4' : '#fff', transition: 'all 0.15s' }}>
                             <div style={{ fontWeight: 600, marginBottom: 2, color: isToday ? '#10b981' : undefined }}>{d}</div>
                             {hasEvent && (
-                                <div style={{ fontSize: 9, color: '#059669', fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', whiteSpace: 'pre-line' }}>
-                                    {schedules[d]}
+                                <div style={{ fontSize: 9, color: '#059669', fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-all' }}>
+                                    {splitSchedule(schedules[d]).summary}
                                 </div>
                             )}
                         </div>
@@ -227,21 +245,39 @@ function ScheduleManager() {
                         <span className="material-symbols-rounded" style={{ fontSize: 18, verticalAlign: 'middle', marginRight: 4, color: '#3b82f6' }}>edit_calendar</span>
                         {year}년 {month}월 {editDay}일
                     </p>
-                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>엔터로 줄바꿈 (최대 3줄)</p>
-                    <textarea
-                        value={editText}
-                        onChange={(e) => {
-                            const lines = e.target.value.split('\n');
-                            if (lines.length <= 3) setEditText(e.target.value);
-                        }}
-                        placeholder={'1줄: 일정 제목\n2줄: 시간/장소\n3줄: 비고'}
-                        rows={3}
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>둘 다 비우고 저장하면 일정이 삭제됩니다</p>
+
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                        <span>요약 <span style={{ fontWeight: 400, color: '#94a3b8' }}>· 달력에 보이는 글자</span></span>
+                        <span style={{ fontWeight: 400, color: editSummary.length > 7 ? '#d97706' : '#94a3b8' }}>{editSummary.length}자 (6~7자 권장)</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={editSummary}
+                        onChange={(e) => setEditSummary(e.target.value)}
+                        placeholder="예: 수학여행"
                         autoFocus
-                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid #cbd5e0', borderRadius: 8, outline: 'none', marginBottom: 8, boxSizing: 'border-box', resize: 'none', lineHeight: 1.6, fontFamily: 'Pretendard, sans-serif' }}
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: `1px solid ${missingSummary ? '#ef4444' : '#cbd5e0'}`, borderRadius: 8, outline: 'none', marginBottom: 12, boxSizing: 'border-box', fontFamily: 'Pretendard, sans-serif' }}
                     />
+
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                        내용 <span style={{ fontWeight: 400, color: '#94a3b8' }}>· 요약을 누르면 보이는 전체 내용</span>
+                    </label>
+                    <textarea
+                        value={editDetail}
+                        onChange={(e) => setEditDetail(e.target.value)}
+                        placeholder="실제 내용을 붙여넣으세요"
+                        rows={8}
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid #cbd5e0', borderRadius: 8, outline: 'none', marginBottom: 4, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'Pretendard, sans-serif' }}
+                    />
+                    <p style={{ fontSize: 11, textAlign: 'right', marginBottom: 10, color: tooLong ? '#ef4444' : '#94a3b8', fontWeight: tooLong ? 700 : 400 }}>
+                        {missingSummary && <span style={{ color: '#ef4444', fontWeight: 700, float: 'left' }}>요약을 입력해 주세요</span>}
+                        전체 {joined.length} / {SCHEDULE_MAX_LENGTH}자{tooLong && ' — 너무 깁니다'}
+                    </p>
+
                     <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={handleSave} style={{ flex: 1, padding: '10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>저장</button>
-                        <button onClick={() => setEditDay(null)} style={{ flex: 1, padding: '10px', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>취소</button>
+                        <button onClick={handleSave} disabled={tooLong || missingSummary || saving} style={{ flex: 1, padding: '10px', background: tooLong || missingSummary || saving ? '#94a3b8' : '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: tooLong || missingSummary || saving ? 'not-allowed' : 'pointer', fontSize: 14 }}>{saving ? '저장 중...' : '저장'}</button>
+                        <button onClick={closeEditor} style={{ flex: 1, padding: '10px', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>취소</button>
                     </div>
                 </div>
             )}

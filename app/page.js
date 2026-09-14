@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../components/AuthProvider';
-import { auth, getSchedules } from '../lib/firebase';
+import { auth, getSchedules, splitSchedule } from '../lib/firebase';
 import { fetchAllStudentData } from '../lib/discipline';
 
 export default function HomePage() {
@@ -685,6 +685,8 @@ function CalendarSection() {
     const [year, setYear] = useState(today.getFullYear());
     const [month, setMonth] = useState(today.getMonth() + 1);
     const [schedules, setSchedules] = useState({});
+    const [selectedDay, setSelectedDay] = useState(null);
+    const [showDetail, setShowDetail] = useState(false);
 
     useEffect(() => {
         getSchedules(year, month).then(setSchedules);
@@ -693,6 +695,11 @@ function CalendarSection() {
     const daysInMonth = new Date(year, month, 0).getDate();
     const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+    const openDay = (d) => { setSelectedDay(d); setShowDetail(false); };
+    const closePopup = () => { setSelectedDay(null); setShowDetail(false); };
+    const selected = selectedDay !== null && schedules[selectedDay] ? splitSchedule(schedules[selectedDay]) : null;
+    const selectedWeekday = selectedDay !== null ? dayNames[new Date(year, month - 1, selectedDay).getDay()] : '';
 
     const prevMonth = () => {
         if (month === 1) { setMonth(12); setYear(year - 1); }
@@ -732,13 +739,49 @@ function CalendarSection() {
                         <div
                             key={d}
                             className={`cal-cell ${isToday(d) ? 'today' : ''} ${hasSchedule ? 'has-event' : ''} ${dayOfWeek === 0 ? 'sun' : ''} ${dayOfWeek === 6 ? 'sat' : ''}`}
+                            onClick={hasSchedule ? () => openDay(d) : undefined}
                         >
                             <span className="cal-date">{d}</span>
-                            {hasSchedule && <span className="cal-schedule-text">{schedules[d]}</span>}
+                            {hasSchedule && <span className="cal-schedule-text">{splitSchedule(schedules[d]).summary}</span>}
                         </div>
                     );
                 })}
             </div>
+
+            {selected && (
+                <div style={RS.modal} onClick={closePopup}>
+                    <div style={{ ...RS.modalBox, fontFamily: 'Pretendard, sans-serif' }} onClick={e => e.stopPropagation()}>
+                        <p style={RS.label}>{month}월 {selectedDay}일 ({selectedWeekday})</p>
+
+                        {!showDetail ? (
+                            <>
+                                <button
+                                    onClick={() => setShowDetail(true)}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%', padding: '18px 16px', margin: '8px 0 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 16, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                                >
+                                    <span style={{ fontSize: 18, fontWeight: 800, color: '#166534', wordBreak: 'keep-all' }}>{selected.summary}</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0, fontSize: 12, fontWeight: 600, color: '#16a34a' }}>
+                                        자세히
+                                        <span className="material-symbols-rounded" style={{ fontSize: 18 }}>chevron_right</span>
+                                    </span>
+                                </button>
+                                <button style={{ ...RS.btn, background: '#0f172a', fontFamily: 'inherit' }} onClick={closePopup}>닫기</button>
+                            </>
+                        ) : (
+                            <>
+                                <p style={{ ...RS.value, fontSize: 18, marginBottom: 12 }}>{selected.summary}</p>
+                                <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 14, marginBottom: 16, background: '#f8fafc', borderRadius: 12, fontSize: 14, lineHeight: 1.7, color: selected.detail ? '#334155' : '#94a3b8', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                    {selected.detail || '등록된 상세 내용이 없습니다.'}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button style={{ ...RS.btn, background: '#f1f5f9', color: '#475569', fontFamily: 'inherit' }} onClick={() => setShowDetail(false)}>뒤로</button>
+                                    <button style={{ ...RS.btn, background: '#0f172a', fontFamily: 'inherit' }} onClick={closePopup}>닫기</button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
         </section>
     );
