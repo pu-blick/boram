@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ref, onValue } from 'firebase/database';
 import { useAuth } from '../../components/AuthProvider';
-import { db, setUserRole, getSchedules, setSchedule, splitSchedule, joinSchedule, SCHEDULE_MAX_LENGTH } from '../../lib/firebase';
+import { db, setUserRole, getSchedules, setSchedule, parseSchedule, serializeSchedule, SCHEDULE_MAX_LENGTH } from '../../lib/firebase';
 
 export default function AdminPage() {
     const { user, role, loading } = useAuth();
@@ -153,8 +153,7 @@ function ScheduleManager() {
     const [month, setMonth] = useState(today.getMonth() + 1);
     const [schedules, setSchedulesState] = useState({});
     const [editDay, setEditDay] = useState(null);
-    const [editSummary, setEditSummary] = useState('');
-    const [editDetail, setEditDetail] = useState('');
+    const [editItems, setEditItems] = useState([]);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -174,27 +173,37 @@ function ScheduleManager() {
         else setMonth(month + 1);
     };
 
+    const emptyItem = () => ({ summary: '', detail: '' });
+
     const handleDayClick = (d) => {
-        const { summary, detail } = splitSchedule(schedules[d]);
+        const items = parseSchedule(schedules[d]);
         setEditDay(d);
-        setEditSummary(summary);
-        setEditDetail(detail);
+        setEditItems(items.length ? items : [emptyItem()]);
     };
 
     const closeEditor = () => {
         setEditDay(null);
-        setEditSummary('');
-        setEditDetail('');
+        setEditItems([]);
     };
 
-    const joined = joinSchedule(editSummary, editDetail);
-    const tooLong = joined.length > SCHEDULE_MAX_LENGTH;
-    const missingSummary = !editSummary.trim() && !!editDetail.trim();
+    const updateItem = (index, field, value) => {
+        setEditItems(items => items.map((it, i) => (i === index ? { ...it, [field]: value } : it)));
+    };
+    const addItem = () => setEditItems(items => [...items, emptyItem()]);
+    const removeItem = (index) => {
+        setEditItems(items => (items.length > 1 ? items.filter((_, i) => i !== index) : [emptyItem()]));
+    };
+
+    const serialized = serializeSchedule(editItems);
+    const savedLength = serialized ? serialized.length : 0;
+    const tooLong = savedLength > SCHEDULE_MAX_LENGTH;
+    const missingSummary = editItems.some(it => !it.summary.trim() && it.detail.trim());
+    const blocked = tooLong || missingSummary || saving;
 
     const handleSave = async () => {
-        if (editDay === null || tooLong || missingSummary || saving) return;
+        if (editDay === null || blocked) return;
         setSaving(true);
-        const ok = await setSchedule(year, month, editDay, joined || null);
+        const ok = await setSchedule(year, month, editDay, serialized);
         setSaving(false);
         if (!ok) {
             alert('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -229,10 +238,13 @@ function ScheduleManager() {
                         <div key={d} onClick={() => handleDayClick(d)}
                             style={{ minHeight: 56, padding: '4px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 12, textAlign: 'center', border: isEditing ? '2px solid #3b82f6' : isToday ? '2px solid #10b981' : '1px solid #f1f5f9', background: isEditing ? '#eff6ff' : hasEvent ? '#f0fdf4' : '#fff', transition: 'all 0.15s' }}>
                             <div style={{ fontWeight: 600, marginBottom: 2, color: isToday ? '#10b981' : undefined }}>{d}</div>
-                            {hasEvent && (
-                                <div style={{ fontSize: 9, color: '#059669', fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-all' }}>
-                                    {splitSchedule(schedules[d]).summary}
+                            {hasEvent && parseSchedule(schedules[d]).slice(0, 2).map((it, j) => (
+                                <div key={j} style={{ fontSize: 9, color: '#059669', fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                    {it.summary}
                                 </div>
+                            ))}
+                            {hasEvent && parseSchedule(schedules[d]).length > 2 && (
+                                <div style={{ fontSize: 9, color: '#94a3b8', lineHeight: 1.3 }}>+{parseSchedule(schedules[d]).length - 2}</div>
                             )}
                         </div>
                     );
@@ -245,38 +257,59 @@ function ScheduleManager() {
                         <span className="material-symbols-rounded" style={{ fontSize: 18, verticalAlign: 'middle', marginRight: 4, color: '#3b82f6' }}>edit_calendar</span>
                         {year}년 {month}월 {editDay}일
                     </p>
-                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>둘 다 비우고 저장하면 일정이 삭제됩니다</p>
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>모든 칸을 비우고 저장하면 이 날짜 일정이 삭제됩니다</p>
 
-                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
-                        <span>요약 <span style={{ fontWeight: 400, color: '#94a3b8' }}>· 달력에 보이는 글자</span></span>
-                        <span style={{ fontWeight: 400, color: editSummary.length > 7 ? '#d97706' : '#94a3b8' }}>{editSummary.length}자 (6~7자 권장)</span>
-                    </label>
-                    <input
-                        type="text"
-                        value={editSummary}
-                        onChange={(e) => setEditSummary(e.target.value)}
-                        placeholder="예: 수학여행"
-                        autoFocus
-                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: `1px solid ${missingSummary ? '#ef4444' : '#cbd5e0'}`, borderRadius: 8, outline: 'none', marginBottom: 12, boxSizing: 'border-box', fontFamily: 'Pretendard, sans-serif' }}
-                    />
+                    {editItems.map((item, index) => {
+                        const noSummary = !item.summary.trim() && !!item.detail.trim();
+                        return (
+                            <div key={index} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 10 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <span style={{ fontSize: 12, fontWeight: 800, color: '#3b82f6' }}>일정 {index + 1}</span>
+                                    <button onClick={() => removeItem(index)} style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                                        <span className="material-symbols-rounded" style={{ fontSize: 16 }}>delete</span>
+                                        삭제
+                                    </button>
+                                </div>
 
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
-                        내용 <span style={{ fontWeight: 400, color: '#94a3b8' }}>· 요약을 누르면 보이는 전체 내용</span>
-                    </label>
-                    <textarea
-                        value={editDetail}
-                        onChange={(e) => setEditDetail(e.target.value)}
-                        placeholder="실제 내용을 붙여넣으세요"
-                        rows={8}
-                        style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid #cbd5e0', borderRadius: 8, outline: 'none', marginBottom: 4, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'Pretendard, sans-serif' }}
-                    />
+                                <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                                    <span>요약 제목 <span style={{ fontWeight: 400, color: '#94a3b8' }}>· 달력에 보이는 글자</span></span>
+                                    <span style={{ fontWeight: 400, color: item.summary.length > 7 ? '#d97706' : '#94a3b8' }}>{item.summary.length}자 (7자까지 보임)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={item.summary}
+                                    onChange={(e) => updateItem(index, 'summary', e.target.value)}
+                                    placeholder="예: 수학여행"
+                                    autoFocus={index === 0}
+                                    style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: `1px solid ${noSummary ? '#ef4444' : '#cbd5e0'}`, borderRadius: 8, outline: 'none', marginBottom: 10, boxSizing: 'border-box', fontFamily: 'Pretendard, sans-serif' }}
+                                />
+
+                                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                                    상세 내용 <span style={{ fontWeight: 400, color: '#94a3b8' }}>· 요약을 누르면 보이는 전체 내용</span>
+                                </label>
+                                <textarea
+                                    value={item.detail}
+                                    onChange={(e) => updateItem(index, 'detail', e.target.value)}
+                                    placeholder="실제 내용을 붙여넣으세요"
+                                    rows={6}
+                                    style={{ width: '100%', padding: '10px 14px', fontSize: 14, border: '1px solid #cbd5e0', borderRadius: 8, outline: 'none', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, fontFamily: 'Pretendard, sans-serif' }}
+                                />
+                                {noSummary && <p style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, marginTop: 4 }}>요약 제목을 입력해 주세요</p>}
+                            </div>
+                        );
+                    })}
+
+                    <button onClick={addItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, width: '100%', padding: 10, marginBottom: 8, background: '#fff', border: '1px dashed #93c5fd', borderRadius: 10, color: '#3b82f6', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: 18 }}>add</span>
+                        요약 + 상세 내용 추가
+                    </button>
+
                     <p style={{ fontSize: 11, textAlign: 'right', marginBottom: 10, color: tooLong ? '#ef4444' : '#94a3b8', fontWeight: tooLong ? 700 : 400 }}>
-                        {missingSummary && <span style={{ color: '#ef4444', fontWeight: 700, float: 'left' }}>요약을 입력해 주세요</span>}
-                        전체 {joined.length} / {SCHEDULE_MAX_LENGTH}자{tooLong && ' — 너무 깁니다'}
+                        저장 용량 {savedLength} / {SCHEDULE_MAX_LENGTH}자{tooLong && ' — 너무 깁니다. 내용을 줄여 주세요'}
                     </p>
 
                     <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={handleSave} disabled={tooLong || missingSummary || saving} style={{ flex: 1, padding: '10px', background: tooLong || missingSummary || saving ? '#94a3b8' : '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: tooLong || missingSummary || saving ? 'not-allowed' : 'pointer', fontSize: 14 }}>{saving ? '저장 중...' : '저장'}</button>
+                        <button onClick={handleSave} disabled={blocked} style={{ flex: 1, padding: '10px', background: blocked ? '#94a3b8' : '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: blocked ? 'not-allowed' : 'pointer', fontSize: 14 }}>{saving ? '저장 중...' : '저장'}</button>
                         <button onClick={closeEditor} style={{ flex: 1, padding: '10px', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>취소</button>
                     </div>
                 </div>
