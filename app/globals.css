@@ -540,15 +540,6 @@ body {
 }
 
 /* 척척박사 챗봇 */
-.chat-bubble-float {
-    animation: chatFloat 2.2s ease-in-out infinite;
-}
-
-@keyframes chatFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-}
-
 @media (min-width: 768px) and (max-width: 1024px) {
     .chat-char {
         height: 300px !important;

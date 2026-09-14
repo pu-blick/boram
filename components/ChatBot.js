@@ -25,7 +25,6 @@ async function askChatbot(question, history) {
 const CS = {
     fab: { position: 'fixed', bottom: 8, right: -8, zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
     fabChar: { height: 176, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.28))', transition: 'transform 0.2s ease' },
-    fabBubble: { background: 'white', color: '#1d4ed8', fontSize: 12.5, fontWeight: 800, padding: '7px 12px', borderRadius: 14, whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(0,0,0,0.18)', border: '1px solid #dbeafe', transition: 'opacity 0.25s ease' },
     panel: { position: 'fixed', bottom: 20, right: 20, zIndex: 300, width: 'min(360px, calc(100vw - 32px))', height: 'min(520px, calc(100vh - 120px))', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: 18, overflow: 'hidden', boxShadow: '0 16px 48px rgba(15,23,42,0.28)', border: '1px solid #e2e8f0' },
     header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'linear-gradient(135deg, #2563eb, #06b6d4)', color: 'white' },
     closeBtn: { background: 'none', border: 'none', color: 'white', fontSize: 22, lineHeight: 1, cursor: 'pointer' },
@@ -76,10 +75,9 @@ export default function ChatBot() {
                     onMouseEnter={() => setHover(true)}
                     onMouseLeave={() => setHover(false)}
                     style={CS.fab}
-                    aria-label="무엇이든 물어보세요"
+                    aria-label="척척박사 챗봇 열기"
                 >
-                    <span className="chat-bubble-float" style={{ ...CS.fabBubble, opacity: hover ? 1 : 0 }}>무엇이든 물어보세요</span>
-                    {/* 그림 오른쪽 39%가 투명 여백이라, 그림 폭의 14%만큼 오른쪽으로 옮겨도 몸이 잘리지 않는다 (말풍선은 제자리) */}
+                    {/* 그림 오른쪽 39%가 투명 여백이라, 그림 폭의 14%만큼 오른쪽으로 옮겨도 몸이 잘리지 않는다 */}
                     <img className="chat-char" src="/척척박사.png" alt="척척박사" style={{ ...CS.fabChar, transform: `translateX(14%) scale(${hover ? 1.05 : 1})` }} />
                 </button>
             )}
